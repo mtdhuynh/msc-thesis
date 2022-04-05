@@ -6,8 +6,10 @@
 </p>
 
 
-<table align="center" style="background-color:rgba(0,0,0,0);">
-  <tr style="background-color:rgba(0,0,0,0);">
+<table align="center" style="background-color: rgba(0,0,0,0); border: none; background: transparent;">
+  <tr style="background-color: rgba(0,0,0,0); border-collapse: none; background: transparent;">
+    <td>In collaboration with:
+  <tr style="background-color: rgba(0,0,0,0); border: none; background: transparent;">
     <!-- <td><a href="https://nearlab.polimi.it/medical/" alt="NEAR Lab Website" target="_blank">
   		<img src="images/near-lab-logo.jpg" alt="NEAR Lab Logo" width=130>
   	  </a></th> -->
@@ -16,7 +18,7 @@
 	  </a>
 	  <a href="https://www.humanitas.it/" alt="Humanitas Website" target="_blank">
 		<img src="images/humanitas-logo.svg" alt="Humanitas Logo" height=85>
-	  </a></th>
+	  </a>
 </table>
 
 <p align="center">
@@ -29,13 +31,59 @@ Automated colorectal polyp detection using Deep Learning in colonoscopy-video im
 # Table of Contents
 * [Introduction](#introduction)
 * [Installation](#installation)
+  1. [Download the SUN Dataset](#1-download-the-sun-dataset)
+  2. [Install conda](#2-install-condahttpsdocscondaioprojectscondaenlatestuser-guideinstallindexhtml)
+  3. [Clone the repository](#3-clone-the-repository)
+  4. [Install the dependencies](#4-install-the-dependencies)
+* [Usage](#usage)
 * [Contacts & Acknowledgements](#contacts--acknowledgements)
 
 # Introduction
 
+Detection of colorectal polyps during colonoscopy procedures is a time-consuming, expensive, and attention-demanding task, requiring an expert's supervision.
 
+The goal of the project is to benchmark state-of-the-art Object Detection models to correctly identify and locate such polyps in an automatised fashion, to speed up and improve their diagnosis. 
+
+For this purpose, data from the [SUN Dataset](http://sundatabase.org/) will be used for training the models, and evaluation will be carried out against available commercial products. 
 
 # Installation
+
+### 1. Download the SUN Dataset
+
+Follow the instructions at the bottom of the [SUN Dataset website](http://sundatabase.org/) to request access to the data.
+
+### 2. Install [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
+
+### 3. Clone the repository
+```
+git clone https://github.com/mtdhuynh/ms-thesis.git
+```
+
+### 4. Install the dependencies
+**Note**: if working from a Windows OS, the following commands must be run from the `Anaconda prompt`.
+
+Ensure no previous conda environments exist:
+```
+cd ms-thesis
+conda env remove --name ms-thesis
+```
+
+Install the conda environment from the requirements file:
+```
+conda env create -f src/requirements.yml
+```
+
+Verify that the environment was installed correctly:
+```
+conda env list
+```
+
+Activate the conda environmet:
+```
+conda activate ms-thesis
+```
+
+# Usage
 
 # Contacts & Acknowledgements
 
