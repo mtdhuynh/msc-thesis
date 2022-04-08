@@ -32,9 +32,10 @@ Automated colorectal polyp detection using Deep Learning in colonoscopy-video im
 * [Introduction](#introduction)
 * [Installation](#installation)
   1. [Download the SUN Dataset](#1-download-the-sun-dataset)
-  2. [Install conda](#2-install-condahttpsdocscondaioprojectscondaenlatestuser-guideinstallindexhtml)
+  2. [Install conda](#2-install-conda)
   3. [Clone the repository](#3-clone-the-repository)
   4. [Install the dependencies](#4-install-the-dependencies)
+* [Repository Structure](#repository-structure)
 * [Usage](#usage)
 * [Contacts & Acknowledgements](#contacts--acknowledgements)
 
@@ -78,10 +79,48 @@ Verify that the environment was installed correctly:
 conda env list
 ```
 
-Activate the conda environmet:
+Activate the conda environment:
 ```
 conda activate ms-thesis
 ```
+
+# Repository Structure
+
+The repository has been structured as follows:
+```
+├───data
+│   ├───00_zip
+│   ├───01_raw
+│   ├───02_intermediate
+│   ├───03_primary
+│   ├───04_model_input
+│   ├───05_models
+│   ├───06_model_output
+│   └───07_reporting
+│
+├───docs
+├───images
+├───notebooks
+├───src
+│   ├───dataloaders
+│   ├───inference
+│   ├───lr_schedulers
+│   ├───metrics
+│   ├───models
+│   ├───optimizers
+│   ├───train
+│   └───utils
+│
+```
+
+
+| **Folder** | **Description** | **Tags** |
+|:---------------------|:----------------|:---------|
+| `data` | Contains all the data, models, and model outputs needed and produced by the project. It follows a tree structure as defined in [this data engineering convention](https://towardsdatascience.com/the-importance-of-layered-thinking-in-data-engineering-a09f685edc71) to help building reproducible Data Science/Machine Learning pipelines. | `raw data`, `models`, `outputs` |
+| `images` | Contains images, plots, icons, logos, etc. used in the repository's documentation (`README.md`, presentations, reports, etc.). | `documentation`, `images`, `icons`, `plots`, `logos` |
+| `notebooks` | Contains `Jupyter` notebooks used for exploration, experiments, tests, etc. | `jupyter`, `experiments`, `tests` |
+| `docs` | Contains documentation, slide decks, and reports regarding the project. | `documentation`, `reports` |
+| `src` | Contains all the source code and scripts used in the project. | `python`, `pytorch`, `conda`, `code` |
 
 # Usage
 
