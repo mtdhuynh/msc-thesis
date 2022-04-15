@@ -69,6 +69,11 @@ cd ms-thesis
 conda env remove --name ms-thesis
 ```
 
+**[OPTIONAL]** Update `conda`:
+```
+conda update conda
+```
+
 Install the conda environment from the requirements file:
 ```
 conda env create -f src/requirements.yml
