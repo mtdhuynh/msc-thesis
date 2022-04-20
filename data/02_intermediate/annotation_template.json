@@ -1,0 +1,14 @@
+{
+"image_id": "",
+"class": 0,
+"labels": [
+	{
+	"label_id": 0,
+	"category_id": 0,
+	"category_name": "",
+	"segmentation": [],
+	"bbox": []
+	}
+],
+"other": []
+}

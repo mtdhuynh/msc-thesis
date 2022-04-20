@@ -1,0 +1,41 @@
+{
+    "polyp_classes": [
+                {
+                "id": 1,
+                "name": "Hyperplastic polyp",
+                "color": "(255,255,155,100)",
+                "outline": "(255,222,0,255)"
+                },
+                {
+                "id": 2,
+                "name": "Sessile serrated lesion",
+                "color": "(255,102,102,100)",
+                "outline": "(255,60,60,255)"
+                },
+                {
+                "id": 3,
+                "name": "Low-grade adenoma",
+                "color": "(51,51,255,100)",
+                "outline": "(0,0,255,255)"
+                },
+                {
+                "id": 4,
+                "name": "Traditional serrated adenoma",
+                "color": "(0,204,0,100)",
+                "outline": "(0,155,0,255)"
+                },
+                {
+                "id": 5,
+                "name": "High-grade adenoma",
+                "color": "(192,192,192,100)",
+                "outline": "(135,135,135,255)"
+                },
+                {
+                "id": 6,
+                "name": "Invasive carcinoma",
+                "color": "(255,128,0,100)",
+                "outline": "(220,110,0,255)"
+                }
+                ]
+    }
+    
