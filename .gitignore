@@ -1,5 +1,11 @@
 # ms-thesis dependent
-data/
+data/00_zip/
+data/01_raw/
+data/02_intermediate/
+data/03_primary/
+data/04_model_input/
+data/05_models/
+data/06_model_output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
