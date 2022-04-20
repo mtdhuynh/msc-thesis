@@ -6,8 +6,8 @@ import yaml
 
 from torch.utils.tensorboard import SummaryWriter
 
-from utils.logging import get_logger
-from utils.training_utils import prepare_training, train
+from utils.logging_utils import get_logger
+from utils.training_utils import train
 
 def main(config, device, writer, logger):
     """
@@ -15,32 +15,35 @@ def main(config, device, writer, logger):
     launches the training loop in "train()".
 
     Parameters:
-    config (dict)           : dict of training configuration parameters as specified in the .yaml file.
-    device (str)            : either 'cpu' or 'cuda:<device_no>'.
-    writer (SummaryWriter)  : tensorboard writer object for run logging.
-    logger (logger.Logger)  : logger object for stout and sterr.
+        config (dict)           : dict of training configuration parameters as specified in the .yaml file.
+        device (str)            : either 'cpu' or 'cuda:<device_no>'.
+        writer (SummaryWriter)  : tensorboard writer object for run logging.
+        logger (logger.Logger)  : logger object for stout and sterr.
     """
-    logger.info('Training session started.')
-    print('Training session started.')
+    if logger:
+        logger.info('Training session started.')
+        print('Training session started.')
 
     # Load training objects defined in the config file
     training_dict = prepare_training(config, device, writer, logger)
     # Start training loop
     train(training_dict, writer, logger)
 
-    logger.info('Training session ended.')
-    print('Training session ended.')
+    if logger:
+        logger.info('Training session ended.')
+        print('Training session ended.')
     
     # When done with training, make sure all pending events 
     # have been written to disk and close the tensorboard logger
     writer.flush()
     writer.close()
 
-if __name__=='__main__':
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='setup')
     parser.add_argument("--config", type=str, default='/home/thuynh/ms-thesis/data/04_model_input/config/yolov3.yaml', help='Configuration setup file to use for model training.')
-    parser.add_argument("--device", type=str, default='cpu', help='Device (CUDA if available) to use for training.')
+    parser.add_argument("--device", type=str, default='cpu', help='Device (CUDA if available) to use for model training.')
     parser.add_argument("--run-tensorboard", type=bool, default=False, choices=[True, False], help='If True, open tensorboard in a browser window at the end of training.')
+    parser.add_argument("--verbose", type=bool, default=True, choices=[True, False], help='If False, only logs training progress. If True, also logs the preparation phase.')
 
     args = parser.parse_args()
     
@@ -85,10 +88,14 @@ if __name__=='__main__':
     shutil.copy(args.config, logdir)
 
     # Setup logger object
-    logger = get_logger(logdir)
+    if args.verbose:
+        logger = get_logger(logdir)
+    else:
+        logger = None
 
-    logger.info(f'Output folder: {logdir}')
-    print(f'Output folder: {logdir}')
+    if logger:
+        logger.info(f'Output folder: {logdir}')
+        print(f'Output folder: {logdir}')
 
     # Start training
     main(config, args.device, tb_writer, logger)
