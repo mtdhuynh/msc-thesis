@@ -10,8 +10,11 @@ dependencies:
   - seaborn=0.11.2
   - pandas=1.4.2
   - numpy=1.22.3
-  - pytorch=1.11.0
-  - torchvision=0.12.0
+  - pytorch::pytorch=1.11.0
+  - pytorch::torchvision=0.12.0
   - cudatoolkit=11.3
   - opencv=4.5.5
   - ipykernel=6.13.0
+  - albumentations=1.0.3
+  - imgaug=0.4.0
+  - tensorboard=2.8.0
