@@ -24,10 +24,8 @@ def main(config, device, writer, logger):
         logger.info('Training session started.')
         print('Training session started.')
 
-    # Load training objects defined in the config file
-    training_dict = prepare_training(config, device, writer, logger)
-    # Start training loop
-    train(training_dict, writer, logger)
+    # Start training session
+    train(config, device, writer, logger)
 
     if logger:
         logger.info('Training session ended.')
