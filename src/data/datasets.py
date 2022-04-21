@@ -193,3 +193,92 @@ class ODDataset(torch.utils.data.Dataset):
         }
 
         return transformed_image, target
+
+    def visualize(self, transformed=False, n=10, nrow=5, bbox_width=5, font_scale=1.2, thickness=2):
+        """
+        Visualizes a grid of images with bounding box annotations.
+
+        It loads random images and labels, draws the bounding boxes and corresponding label texts,
+        then puts them neatly in a grid.
+        Uses torch.utils.make_grid().
+
+        If transformed=True, it displays the images and bounding boxes after applying
+        training augmentations. 
+
+        Recommended font_scale, thickness, and bbox_width values are:
+        - font_scale=1.2 + thickness=2 + bbox_width=5 (all defaults) --- if transformed=False (i.e., 1000x1000 images).
+        - font_scale=0.5 + thickness=1 + bbox_width=2                --- if transformed=True (e.g., 512x512 images).
+
+        It returns a grid of images, which is in the form of one torch.Tensor image with CHW format.
+        
+        Parameters:
+            transformed (bool)  : whether to apply augmentations before displaying or not.
+            n (int)             : number of images to visualize.
+            nrow (int)          : number of rows for the image grid.
+            bbox_width (int)    : controls the thickness of the bbox outline (in pixel).
+            font_scale (float)  : controls the size of the label text (relative to the font base size).
+            thickness (int)     : controls the thickness of the line used for drawing the text (in pixel).
+
+        Returns:
+            grid (torch.Tensor)
+        """
+        # Import here to avoid conflicts       
+        from data.dataset_utils import get_transforms
+        from utils.drawing_utils import draw_bbox, plot_grid 
+        
+        # Get n random images and labels
+        RNG = np.random.default_rng()
+
+        indexes = RNG.choice(len(self.images_list), n, replace=False)
+
+        image_samples = [self.images_list[idx] for idx in indexes]
+        label_samples = [self.labels_list[idx] for idx in indexes]
+
+        images = []
+
+        # Load n images and labels
+        for img_fname, lbl_fname in zip(image_samples, label_samples):
+            image, label = self._read(img_fname, lbl_fname)
+
+            if not transformed:
+                if not label['labels']: 
+                    # If no annotations (negative image), plot it anyway and go to next image
+                    images.append(image)
+                    continue
+                elif label['labels']: 
+                # If annotations, draw on original and positive images
+                # Extract relevant annotations (we assume one annotation per image)
+                    bbox_coords = [lbl['bbox'] for lbl in label['labels']]
+                    label_ids = [lbl['category_id'] for lbl in label['labels']]
+                    label_names = [lbl['category_name'] for lbl in label['labels']]
+            else: # Apply transforms to image
+                # Get training transforms without normalization
+                transforms_no_norm = get_transforms(mode='train', specs={'resize': 512, 'min_area': 900, 'min_visibility': 0.2}, normalize=False)
+                # Apply transforms
+                transf = self._transform(image, label, transforms_no_norm)
+
+                # Process output as needed for draw_bbox() -- mainly convert to np.array
+                image = transf['image']
+                bbox_coords = np.array(transf['bboxes'], dtype=np.int64)
+                label_names = transf['label_names']
+                label_ids = np.array(transf['label_ids'], dtype=np.int64)
+
+            # Get bbox color from template
+            bbox_colors = [eval(polyp['outline']) for polyp in self.polyp_classes for id in label_ids if polyp['id']==id]
+
+            # Draw bbox
+            img_with_bbox = draw_bbox(image, bbox_coords, label_names, bbox_width=bbox_width, bbox_colors=bbox_colors, font_scale=font_scale, thickness=thickness)
+
+            images.append(img_with_bbox)
+
+        # Organize images in a grid
+        # To use torchvision.utils.make_grid() we need to convert the images to tensors
+        # We also resize them, as not all of the images have equal size
+        tensorize = Compose([Resize(1000,1000), ToTensorV2()])
+
+        images = [tensorize(image=img)['image'] for img in images]
+
+        # Generate grid
+        grid = plot_grid(images, nrow=nrow, padding=1, normalize=False)
+
+        return grid
