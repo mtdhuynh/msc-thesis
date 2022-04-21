@@ -38,4 +38,13 @@ class ODDataloader(torch.utils.data.DataLoader):
         self.shuffle = shuffle
 
     def __repr__(self):
-        return f'ODDataloader(dataset={self.dataset}, batch_size={self.batch_size}, shuffle={self.shuffle}, num_workers={self.num_workers}, pin_memory={self.pin_memory})'
+        return f'''ODDataloader(
+            dataset={self.dataset}, 
+            batch_size={self.batch_size}, 
+            shuffle={self.shuffle}, 
+            num_workers={self.num_workers}, 
+            pin_memory={self.pin_memory}, 
+            collate_fn={self.collate_fn}, 
+            worker_init_fn={self.worker_init_fn},
+            generator={self.generator}
+        )'''
