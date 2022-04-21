@@ -6,8 +6,11 @@ import yaml
 
 from torch.utils.tensorboard import SummaryWriter
 
+from utils.general_utils import fix_seed
 from utils.logging_utils import get_logger
 from utils.training_utils import train
+
+SEED = 3407
 
 def main(config, device, writer, logger):
     """
@@ -94,6 +97,9 @@ if __name__ == '__main__':
     if logger:
         logger.info(f'Output folder: {logdir}')
         print(f'Output folder: {logdir}')
+
+    # Fix seed
+    fix_seed(SEED)
 
     # Start training
     main(config, args.device, tb_writer, logger)
