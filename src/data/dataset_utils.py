@@ -4,8 +4,41 @@ import albumentations as A
 
 from albumentations.pytorch import ToTensorV2
 
+from data.dataloaders import ODDataloader
 from data.datasets import ODDataset
 from utils.logging_utils import log_tb_images
+
+def get_dataloader(mode, dataset, specs, logger=None):
+    """
+    This functions returns a torch.utils.data.DataLoader object that contains
+    the batches of data used for training/evaluation of the model.
+
+    Parameters:
+        mode (str)                          : specifies the data split. Either 'train' or 'val'.
+        dataset (torch.utils.data.Dataset)  : the input data from which to load the batches.
+        specs (dict)                        : dict of dataloading configuration (batch size, number of workers, etc.).
+        logger (logging.logger)             : python logger object.
+
+    Returns:
+        dataloader (torch.utils.data.DataLoader)
+    """
+    # Shuffle images at each epoch's start only for training set
+    shuffle = True if mode=='train' else False
+
+    # Create torch.utils.data.DataLoader object
+    dataloader = ODDataloader(
+        dataset, 
+        batch_size=specs['batch_size'], 
+        shuffle=shuffle,
+        num_workers=specs['num_workers'],
+        pin_memory=specs['pin_memory']
+    )
+    
+    if logger:
+        logger.info(f'Using {specs["batch_size"]} batch size and {specs["num_workers"]} workers.')
+        print(f'Using {specs["batch_size"]} batch size and {specs["num_workers"]} workers.')
+
+    return dataloader
 
 def get_dataset(mode, fpath, transforms, cache=False, tb_writer=None, logger=None):
     """
