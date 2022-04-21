@@ -4,6 +4,39 @@ import albumentations as A
 
 from albumentations.pytorch import ToTensorV2
 
+from data.datasets import ODDataset
+
+def get_dataset(mode, fpath, transforms, cache=False, logger=None):
+    """
+    This function returns a torch.utils.data.Dataset object that contains the
+    data used for training/evaluation of the model.
+
+    Parameters:
+        mode (str)                              : specifies the data split. Either 'train' or 'val'.
+        fpath (str)                             : the full path to the input data folder. Should contain 'train' and 'val' folders.
+        transforms (albumentations.Compose)     : list of transforms to be applied for augmentation.
+        cache (bool)                            : whether to cache the data when instantiating the dataset object.
+        logger (logging.logger)                 : python logger object.
+
+    Returns:
+        dataset (torch.utils.data.Dataset)
+    """
+    # Get datasplit path
+    data_folder = os.path.join(fpath, mode)
+
+    # Create torch.utils.data.Dataset object
+    dataset = ODDataset(fpath=data_folder, transforms=transforms, cache=cache)
+
+    # Log if requested
+    if logger:
+        logger.info(f'Reading input data from: {data_folder}.')
+        print(f'Reading input data from: {data_folder}.')
+
+        logger.info(f'Using {len(dataset)} {mode} images.')
+        print(f'Using {len(dataset)} {mode} images.')
+
+    return dataset
+
 def get_transforms(mode, specs, normalize=True, logger=None):
     """
     Load standard transforms based on data split.
