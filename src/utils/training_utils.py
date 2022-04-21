@@ -47,14 +47,14 @@ def prepare_training(config, device, tb_writer, logger):
 
     ##### DATASETS #####
     datasets = {
-        'train': get_dataset(mode='train', transforms=transforms, fpath=config['dataset']['fpath'], cache=config['dataset']['cache'], logger=logger),
+        'train': get_dataset(mode='train', transforms=transforms, fpath=config['dataset']['fpath'], cache=config['dataset']['cache'], tb_writer=tb_writer, logger=logger),
         'val': get_dataset(mode='val', transforms=transforms, fpath=config['dataset']['fpath'], cache=config['dataset']['cache'], logger=logger)
     }
 
     ##### DATALOADERS #####
     dataloaders = {
-        'train': get_dataloader(mode='train', dataset=datasets, specs=config['training'], tb_writer=tb_writer, logger=logger),
-        'val': get_dataloader(mode='val', dataset=datasets, specs=config['training'], logger=logger)
+        'train': get_dataloader(mode='train', dataset=datasets['train'], specs=config['training'], logger=logger),
+        'val': get_dataloader(mode='val', dataset=datasets['val'], specs=config['training'], logger=logger)
     }
 
     ##### MODEL #####

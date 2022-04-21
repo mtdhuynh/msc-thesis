@@ -5,8 +5,9 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 from data.datasets import ODDataset
+from utils.logging_utils import log_tb_images
 
-def get_dataset(mode, fpath, transforms, cache=False, logger=None):
+def get_dataset(mode, fpath, transforms, cache=False, tb_writer=None, logger=None):
     """
     This function returns a torch.utils.data.Dataset object that contains the
     data used for training/evaluation of the model.
@@ -16,6 +17,7 @@ def get_dataset(mode, fpath, transforms, cache=False, logger=None):
         fpath (str)                             : the full path to the input data folder. Should contain 'train' and 'val' folders.
         transforms (albumentations.Compose)     : list of transforms to be applied for augmentation.
         cache (bool)                            : whether to cache the data when instantiating the dataset object.
+        tb_writer (tensorboard.SummaryWriter)   : tensorboard writer.
         logger (logging.logger)                 : python logger object.
 
     Returns:
@@ -26,6 +28,10 @@ def get_dataset(mode, fpath, transforms, cache=False, logger=None):
 
     # Create torch.utils.data.Dataset object
     dataset = ODDataset(fpath=data_folder, transforms=transforms, cache=cache)
+
+    # Log images to tensorboard
+    if tb_writer:
+        log_tb_images(dataset, tb_writer)
 
     # Log if requested
     if logger:
