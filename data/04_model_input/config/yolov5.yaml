@@ -1,0 +1,44 @@
+dataset:
+  fpath: '/home/thuynh/ms-thesis/data/04_model_input'
+  cache: False
+  transforms:
+    resize: 512
+    min_area: 900
+    min_visibility: 0.25
+model: 
+  arch: 'YOLOv5'
+  pretrained: False
+  backbone: 'yolov5' # yolov5n, yolov5s, yolov5l, etc.
+  classes: 6
+training:
+  num_epochs: 10000
+  early_stop: 30
+  batch_size: 8
+  num_workers: 4
+  pin_memory: True
+  optimizer:
+    name: 'Adam'
+    lr: 1.0e-3
+    weight_decay: 0.0005
+  loss:
+    name: 'CrossEntropyLoss'
+  metrics:
+    ConfusionMatrix:
+      device: 'cuda'
+      num_classes: 3
+    Fbeta:
+      beta: 1
+      average: False
+  lr_scheduler:
+    name: 'CyclicLR'
+    base_lr: 1.0e-8
+    max_lr: 1.0e-2
+    step_size_up: 3600
+    step_size_down: 8000
+    mode: 'triangular2'
+    cycle_momentum: False
+checkpoints:
+  save_best: True
+  save_checkpoints: True
+  resume_checkpoint: None
+
