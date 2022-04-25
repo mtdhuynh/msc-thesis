@@ -6,10 +6,10 @@ dataset:
     min_area: 900
     min_visibility: 0.25
 model: 
-  arch: 'yolov3'
-  backbone: 'resnet50'
+  arch: 'YOLOv3'
+  pretrained: False
+  backbone: 'yolov3' # yolov3_tiny, yolov3_spp
   classes: 6
-  activation: 'softmax2d'
 training:
   num_epochs: 10000
   early_stop: 30
