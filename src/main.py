@@ -6,9 +6,9 @@ import yaml
 
 from torch.utils.tensorboard import SummaryWriter
 
-from utils.general_utils import fix_seed
-from utils.logging_utils import get_logger
-from utils.training_utils import train
+from utilities.general_utils import fix_seed
+from utilities.logging_utils import get_logger
+from utilities.training_utils import train
 
 SEED = 3407
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
         config['model']['arch'], # arch_name
         logdir_id + '_' + # unique_log_id
         config['model']['backbone'] + '_' + # backbone_name
-        str(config['dataset']['resize']) + '_' + # resize
+        str(config['dataset']['transforms']['resize']) + '_' + # resize
         'bs' + str(config['training']['batch_size']) # batch_size
     ) 
 

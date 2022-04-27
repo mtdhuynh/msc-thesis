@@ -6,7 +6,7 @@ from albumentations.pytorch import ToTensorV2
 
 from data.dataloaders import ODDataloader
 from data.datasets import ODDataset
-from utils.logging_utils import log_tb_images
+from utilities.logging_utils import log_tb_images
 
 def get_dataloader(mode, dataset, specs, logger=None):
     """
@@ -35,8 +35,7 @@ def get_dataloader(mode, dataset, specs, logger=None):
     )
     
     if logger:
-        logger.info(f'Using {specs["batch_size"]} batch size and {specs["num_workers"]} workers.')
-        print(f'Using {specs["batch_size"]} batch size and {specs["num_workers"]} workers.')
+        logger.info(f'{ODDataloader}')
 
     return dataloader
 
@@ -59,6 +58,9 @@ def get_dataset(mode, fpath, transforms, cache=False, tb_writer=None, logger=Non
     # Get datasplit path
     data_folder = os.path.join(fpath, mode)
 
+    if logger:
+        logger.info(f'Reading input data from: {data_folder}.')
+
     # Create torch.utils.data.Dataset object
     dataset = ODDataset(fpath=data_folder, transforms=transforms, cache=cache)
 
@@ -66,13 +68,8 @@ def get_dataset(mode, fpath, transforms, cache=False, tb_writer=None, logger=Non
     if tb_writer:
         log_tb_images(dataset, tb_writer)
 
-    # Log if requested
     if logger:
-        logger.info(f'Reading input data from: {data_folder}.')
-        print(f'Reading input data from: {data_folder}.')
-
         logger.info(f'Using {len(dataset)} {mode} images.')
-        print(f'Using {len(dataset)} {mode} images.')
 
     return dataset
 
@@ -154,7 +151,6 @@ def get_transforms(mode, specs, normalize=True, logger=None):
 
     if logger:
         logger.info(f'For {mode} data, using the following transforms: {transforms}.')
-        print(f'For {mode} data, using the following transforms: {transforms}.')
 
     return transforms
 

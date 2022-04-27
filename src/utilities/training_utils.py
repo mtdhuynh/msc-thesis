@@ -38,9 +38,11 @@ def prepare_training(config, device, tb_writer, logger):
             logger.info(f'Using default device: {device}')
 
     ##### TRANSFORMS #####
+    normalize = config['dataset']['transforms'].pop('normalize')
+
     transforms = {
-        'train': get_transforms(mode='train', specs=config['dataset']['transforms'], logger=logger),
-        'val': get_transforms(mode='val', specs=config['dataset']['transforms'], logger=logger)
+        'train': get_transforms(mode='train', specs=config['dataset']['transforms'], normalize=normalize, logger=logger),
+        'val': get_transforms(mode='val', specs=config['dataset']['transforms'], normalize=normalize, logger=logger)
     }
 
     ##### DATASETS #####
@@ -100,3 +102,35 @@ def prepare_training(config, device, tb_writer, logger):
     }
 
     return training_dict
+
+
+
+
+def train_one_epoch():
+    """
+    One loop of model training. 
+    """
+    pass
+
+def train(config, device, tb_writer, logger):
+    """"
+    Main training function. The function takes as input the configuration
+    file, the selected device (if available), the tensorboard writer and 
+    the logger objects.
+
+    Internally, it parses the config dict and loads all specified utilities
+    for training (dataloaders, models, optimizers, etc.).
+
+    Finally, it starts the training loop.
+
+    Parameters:
+        config (dict)               : config specs read from a yaml file.
+        device (str)                : selected device to run training on. Either 'cpu' or 'cuda:<N>'.
+        tb_writer (SummaryWriter)   : tensorboard writer.
+        logger (logging.logger)     : python logger object.
+    """
+    # Read and load specifications from config
+    training_dict = prepare_training(config, device, tb_writer, logger)
+
+    
+    pass

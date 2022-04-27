@@ -44,12 +44,7 @@ class ODDataset(torch.utils.data.Dataset):
         self.labels_list = [fname[:-4]+'.json' for fname in self.images_list]
         
         # Transforms
-        # Should be 'albumentations.Compose" transforms.
-        # "torch.Compose" transforms are not yet supported. 
-        if transforms.__class__ == Compose([None]).__class__:
-            self.transforms = transforms
-        else:
-            raise Exception(f'Transforms should be provided. Supported transforms types: [{Compose([None]).__class__}]. Got: {transforms.__class__}')
+        self.transforms = transforms
         
         # Caching
         self.cache = cache
@@ -224,7 +219,7 @@ class ODDataset(torch.utils.data.Dataset):
         """
         # Import here to avoid conflicts       
         from data.dataset_utils import get_transforms
-        from utils.drawing_utils import draw_bbox, plot_grid 
+        from utilities.drawing_utils import draw_bbox, plot_grid 
         
         # Get n random images and labels
         RNG = np.random.default_rng()
