@@ -7,10 +7,12 @@ def YOLOv5(backbone='yolov5s', pretrained=True, num_classes=6, device=torch.devi
     YOLOv5 model architecture.
     Loads a YOLOv5 version from torch.hub. Mainly, the model's implementations
     come from Ultralytics's repo.
-    See https://github.com/ultralytics/yolov3.
+    See https://github.com/ultralytics/yolov5/tree/master/models.
 
     Versions released from ultralytics are:
     ['n', 's', 'm', 'l', 'x', 'n6', 's6', 'm6', 'l6', 'x6'].
+    For a full list of available YOLOv5 models in torch.hub see:
+    https://github.com/ultralytics/yolov5/tree/master/models/hub
 
     For more torch.hub.load available arguments, see: https://docs.ultralytics.com/tutorials/pytorch-hub/
 
@@ -31,4 +33,4 @@ def YOLOv5(backbone='yolov5s', pretrained=True, num_classes=6, device=torch.devi
         return torch.hub.load('ultralytics/yolov5', backbone, pretrained=pretrained, classes=num_classes, device=device, autoshape=False)
     except Exception as e:
         print(f'{e}')
-        print(f'Available YOLOv5 models (to specify in "backbone" parameter) in torch.hub: {AVAILABLE_MODELS}.')
+        print(f'Available YOLOv5 models (to specify in "backbone" parameter) in torch.hub: {AVAILABLE_MODELS}. See: https://github.com/ultralytics/yolov5/tree/master/models/hub for a list of all available models.')
