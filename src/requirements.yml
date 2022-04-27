@@ -18,3 +18,4 @@ dependencies:
   - albumentations=1.0.3
   - imgaug=0.4.0
   - tensorboard=2.8.0
+  - wandb=0.12.14
