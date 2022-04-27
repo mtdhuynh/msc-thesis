@@ -16,7 +16,6 @@ def get_model(specs, device, logger=None):
 
     if logger:
         logger.info(f'Loaded {specs["arch"]} model with the following parameters: {", ".join([f"{k}={v}" for k,v in specs.items()])}.')
-        print(f'Loaded {specs["arch"]} model with the following parameters: {", ".join([f"{k}={v}" for k,v in specs.items()])}.')
 
     return model
 

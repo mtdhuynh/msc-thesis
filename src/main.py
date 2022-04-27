@@ -25,14 +25,12 @@ def main(config, device, writer, logger):
     """
     if logger:
         logger.info('Training session started.')
-        print('Training session started.')
 
     # Start training session
     train(config, device, writer, logger)
 
     if logger:
         logger.info('Training session ended.')
-        print('Training session ended.')
     
     # When done with training, make sure all pending events 
     # have been written to disk and close the tensorboard logger
@@ -96,10 +94,10 @@ if __name__ == '__main__':
 
     if logger:
         logger.info(f'Output folder: {logdir}')
-        print(f'Output folder: {logdir}')
 
     # Fix seed
     fix_seed(SEED)
+    logger.info(f'Fixed random seeds for reproducibility: {SEED}.')
 
     # Start training
     main(config, args.device, tb_writer, logger)

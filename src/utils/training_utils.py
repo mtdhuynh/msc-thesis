@@ -1,11 +1,11 @@
 import torch
 
+from detection_models.model_utils import get_model
 from data.dataset_utils import get_dataloader, get_dataset, get_transforms
-from losses.losses_utils import get_loss_function
+from losses.losses_utils import get_loss_fn
 from metrics.metrics_utils import get_metrics
-from models.models_utils import get_model
 from optimizers.optimizers_utils import get_optimizer
-from schedulers.schedulers_utils import get_lr_scheduler
+from lr_schedulers.lr_schedulers_utils import get_lr_scheduler
 
 def prepare_training(config, device, tb_writer, logger):
     """
@@ -29,7 +29,6 @@ def prepare_training(config, device, tb_writer, logger):
 
         if logger:
             logger.info(f'Using selected device: {device}')
-            print(f'Using selected device: {device}')
     except Exception as ex:
         print(f'Specified device not available. Expected ["cpu", "cuda"], got {device}.')
 
@@ -37,7 +36,6 @@ def prepare_training(config, device, tb_writer, logger):
 
         if logger:
             logger.info(f'Using default device: {device}')
-            print(f'Using default device: {device}')
 
     ##### TRANSFORMS #####
     transforms = {
@@ -67,7 +65,7 @@ def prepare_training(config, device, tb_writer, logger):
     lr_scheduler = get_lr_scheduler(optimizer=optimizer, specs=config['training']['lr_scheduler'], logger=logger)
 
     ##### LOSS FUNCTION #####
-    loss_function = get_loss_function(specs=config['training']['loss'], logger=logger)
+    loss_function = get_loss_fn(specs=config['training']['loss'], logger=logger)
 
     ##### METRICS #####
     metrics = get_metrics(specs=config['training']['metrics'], logger=logger)
@@ -78,10 +76,8 @@ def prepare_training(config, device, tb_writer, logger):
 
     if logger:
         logger.info(f'Training for {epochs} epochs.')
-        print(f'Training for {epochs} epochs.')
 
         logger.info(f'Early stop after {early_stop} epochs without improvements in loss function minimization.')
-        print(f'Early stop after {early_stop} epochs without improvements in loss function minimization.')
 
     save_best = config['checkpoints']['save_best'] # True or False
     save_checkpoints = config['checkpoints']['save_checkpoints'] if isinstance(config['checkpoints']['save_checkpoints'], int) else False 

@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 
 def log_tb_images(dataset, tb_writer):
     """
@@ -33,12 +34,19 @@ def get_logger(logdir):
     run_id = os.path.basename(logdir).split('_')[0]
 
     file_path = os.path.join(logdir, f"run_{run_id}.log")
-    hdlr = logging.FileHandler(file_path)
+
+    # Log output to file
+    file_handler = logging.FileHandler(file_path)
 
     formatter = logging.Formatter("[%(asctime)s | %(levelname)s] %(message)s")
-    hdlr.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
-    logger.addHandler(hdlr)
+    # Log output to stdout
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setFormatter(formatter)
+    logger.addHandler(stdout_handler)
+
     logger.setLevel(logging.INFO)
 
     return logger
