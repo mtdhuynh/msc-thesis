@@ -3,13 +3,14 @@ dataset:
   cache: False
   transforms:
     resize: 512
+    normalize: True
     min_area: 900
     min_visibility: 0.25
 model: 
   arch: 'YOLOv3'
   pretrained: False
   backbone: 'yolov3' # yolov3_tiny, yolov3_spp
-  classes: 6
+  num_classes: 6
 training:
   num_epochs: 10000
   early_stop: 30
