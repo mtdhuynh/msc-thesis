@@ -35,7 +35,7 @@ def get_dataloader(mode, dataset, specs, logger=None):
     )
     
     if logger:
-        logger.info(f'{ODDataloader}')
+        logger.info(f'Using {mode} dataloader with batch_size={specs["batch_size"]}, shuffle={shuffle}, num_workers={specs["num_workers"]}, pin_memory={specs["pin_memory"]}.')
 
     return dataloader
 

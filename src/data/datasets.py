@@ -183,7 +183,7 @@ class ODDataset(torch.utils.data.Dataset):
         target = {
             'image_id': img_fname,
             'boxes': torch.as_tensor(transformed['bboxes'], dtype=torch.float32), # Bbox coordinates
-            'label_ids': torch.as_tensor(transformed['label_ids'], dtype=torch.int64), # Corresponding class IDs
+            'labels': torch.as_tensor(transformed['label_ids'], dtype=torch.int64), # Corresponding class IDs
             'label_names': transformed['label_names'] # Corresponding class names
         }
 

@@ -30,7 +30,7 @@ class ODDataloader(torch.utils.data.DataLoader):
             shuffle=shuffle,
             num_workers=num_workers,
             pin_memory=pin_memory,
-            collate_fn=lambda x: tuple(list(xi) for xi in zip(*x)),
+            collate_fn=lambda x: (torch.stack([xi for xi in zip(*x)][0]), [list(xi) for xi in zip(*x)][1]),
             worker_init_fn=seed_worker,
             generator=g
         )
