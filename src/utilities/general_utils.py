@@ -38,5 +38,3 @@ def fix_seed(seed):
     torch.use_deterministic_algorithms(True)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-
-
