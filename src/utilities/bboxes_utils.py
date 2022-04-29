@@ -1,3 +1,4 @@
+import albumentations as A
 import cv2
 import torchvision
 
@@ -92,3 +93,75 @@ def plot_grid(images, nrow=4, padding=1, normalize=False):
     grid = torchvision.utils.make_grid(images, nrow=nrow, padding=padding, normalize=normalize)
 
     return grid
+
+def normalize_bbox(bbox, src_format='xywh', img_width=512, img_height=512):
+    """
+    Normalizes an input bbox coordinate by image dimensions. 
+    Accepts both 'xyxy' and 'xywh' formats (i.e., pascal_voc or coco formats),
+    where 'xyxy'=[x1,y1,x2,y2] and 'xywh'=[x-center,y-center,widht,height].
+
+    Adapted from: https://github.com/albumentations-team/albumentations/blob/master/albumentations/augmentations/bbox_utils.py#L59.
+
+    If format is 'xyxy', it is the same as converting Pascal-VOC bboxes to albumentations format.
+    If format is 'xywh', it is the same as converting COCO bboxes to YOLO format.
+
+    Parameters:
+        bbox (tuple)        : bbox coordinates. Length of bbox should be 4.
+        src_format (str)    : bbox coordinates format. Either 'xyxy' or 'xywh'.
+        img_width (int)     : source image width.
+        img_height (int)    : source image height.
+
+    Returns:
+        normalized_bbox (list)
+    """
+    if src_format == 'xyxy': # pascal-voc to albumentations
+        norm_bbox = A.normalize_bbox(bbox, img_height, img_width)
+    elif src_format == 'xywh': # coco to yolo
+        norm_x_center = bbox[0] / img_width # x-center
+        norm_y_center = bbox[1] / img_height # y-center
+        norm_width = bbox[2] / img_width # bbox-width
+        norm_height = bbox[3] / img_height # bbox-height
+
+        norm_bbox = (norm_x_center, norm_y_center, norm_width, norm_height)
+    else:
+        raise Exception(f'Unknown bbox format: {src_format}. Supported formats: ["xyxy", "xywh"].')
+
+    return list(norm_bbox)
+
+def denormalize_bbox(bbox, src_format='xywh', img_width=512, img_height=512):
+    """
+    Denormalizes an input bbox coordinate by image dimensions. 
+    It is the inverse of 'normalize_bbox()'.
+
+    Input bbox coordinates should be within [0, 1].
+
+    Accepts both 'xyxy' and 'xywh' formats (i.e., albumentations or yolo formats),
+    where 'xyxy'=normalized([x1,y1,x2,y2]) and 'xywh'=normalized([x-center,y-center,widht,height]).
+
+    Adapted from: https://github.com/albumentations-team/albumentations/blob/master/albumentations/augmentations/bbox_utils.py#L59.
+
+    If format is 'xyxy', it is the same as converting albumentations bboxes to Pascal-VOC format.
+    If format is 'xywh', it is the same as converting YOLO bboxes to COCO format.
+
+    Parameters:
+        bbox (tuple)        : bbox coordinates. Length of bbox should be 4.
+        src_format (str)    : bbox coordinates format. Either 'xyxy' or 'xywh'.
+        img_width (int)     : source image width.
+        img_height (int)    : source image height.
+
+    Returns:
+        normalized_bbox (list)
+    """
+    if src_format == 'xyxy': # pascal-voc to albumentations
+        norm_bbox = A.denormalize_bbox(bbox, img_height, img_width)
+    elif src_format == 'xywh': # coco to yolo
+        norm_x_center = bbox[0] * img_width # x-center
+        norm_y_center = bbox[1] * img_height # y-center
+        norm_width = bbox[2] * img_width # bbox-width
+        norm_height = bbox[3] * img_height # bbox-height
+
+        norm_bbox = (norm_x_center, norm_y_center, norm_width, norm_height)
+    else:
+        raise Exception(f'Unknown bbox format: {format}. Supported formats: ["xyxy", "xywh"].')
+
+    return list(norm_bbox)
