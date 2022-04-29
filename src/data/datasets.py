@@ -211,7 +211,7 @@ class ODDataset():
 
         return transformed_image, target
 
-    def visualize(self, images_list=None, transformed=False, n=10, nrow=5, bbox_width=5, font_scale=1.2, thickness=2, resize=512):
+    def visualize(self, images_list=None, transformed=False, n=10, nrow=5, resize=512, font_scale=0.5, thickness=1, bbox_width=2):
         """
         Visualizes a grid of images with bounding box annotations.
 
@@ -232,13 +232,13 @@ class ODDataset():
         
         Parameters:
             images_list (str, list) : image or list of images path to visualize.
-            transformed (bool, str) : whether to apply augmentations before displaying or not. If not False, should be either 'train' or 'val'.
+            transformed (bool)      : whether to apply augmentations before displaying or not.
             n (int)                 : number of images to visualize.
             nrow (int)              : number of rows for the image grid.
-            bbox_width (int)        : controls the thickness of the bbox outline (in pixel).
+            resize (int)            : the size of each output image. 
             font_scale (float)      : controls the size of the label text (relative to the font base size).
             thickness (int)         : controls the thickness of the line used for drawing the text (in pixel).
-            resize (int)            : the size of each output image. 
+            bbox_width (int)        : controls the thickness of the bbox outline (in pixel).
 
         Returns:
             grid (torch.Tensor)
@@ -247,6 +247,7 @@ class ODDataset():
         from data.dataset_utils import get_transforms
         from utilities.bboxes_utils import draw_bbox, plot_grid 
 
+        # Get images and samples
         if images_list is not None:
             image_samples = images_list if isinstance(images_list, list) else [images_list]
             label_samples = [fpath[:-4]+'.json' for fpath in image_samples]
@@ -268,40 +269,46 @@ class ODDataset():
             print(f'{idx+1}. ImageID: {label["image_id"]} | Original Image Height, Width: {image.shape[:2]} | Resized to: {resize}')
             
             if not transformed:
-                if not label['labels']: 
-                    # If no annotations (negative image), plot it anyway and go to next image
-                    images.append(image)
-                    print(f'{idx+1}. Original Labels: {label["labels"]} | No labels to visualize.')
-                    continue
-                elif label['labels']: 
-                # If annotations, draw on original and positive images
-                # Extract relevant annotations (we assume one annotation per image)
-                    bbox_coords = [lbl['xyxy'] for lbl in label['labels']] # use pascal_voc format
-                    label_ids = [lbl['category_id'] for lbl in label['labels']]
-                    label_names = [lbl['category_name'] for lbl in label['labels']]
-            else: # Apply transforms to image
-                # Get training transforms WITHOUT normalization+totensor
-                transforms_no_norm = get_transforms(mode=transformed, params={'transforms': {
-                    'resize': resize, 
-                    'min_area': 900, 
-                    'min_visibility': 0.2
+                # mode='val' + normalize=False = only Resize transforms
+                transforms_no_norm = get_transforms(
+                    mode='val', 
+                    params={
+                        'transforms': {
+                            'resize': resize,
+                            'min_visibility': 0.2, # at least 1/5 of the original bbox
+                            'min_area': 900 # 30x30
+                        },
+                        'format': 'pascal_voc'
                     },
-                'format': 'pascal_voc'
-                }, normalize=False)
-                # Apply transforms
-                transf = self._transform(image, label, transforms_no_norm)
+                    normalize=False
+                )
+            else: # Apply training transforms to image (no normalization)
+                transforms_no_norm = get_transforms(
+                    mode='train',
+                    params={
+                        'transforms': {
+                            'resize': resize, 
+                            'min_area': 900, 
+                            'min_visibility': 0.2
+                        },
+                        'format': 'pascal_voc'
+                    }, 
+                    normalize=False)
 
-                # Process output as needed for draw_bbox() -- mainly convert to np.array
-                image = transf['image']
-                bbox_coords = np.array(transf['bboxes'], dtype=np.int64)
-                label_names = transf['label_names']
-                label_ids = np.array(transf['label_ids'], dtype=np.int64)
+            # Apply transforms
+            transf = self._transform(image, label, transforms_no_norm)
+
+            # Process output as needed for draw_bbox() -- mainly convert to np.array
+            image = transf['image']
+            bbox_coords = np.array(transf['bboxes'], dtype=np.int64)
+            label_names = transf['label_names']
+            label_ids = np.array(transf['label_ids'], dtype=np.int64)
             
             # Print info
             if len(bbox_coords)==0: # no annotations
                 print(f'{idx+1}. Original Labels: {label["labels"]} | No labels to visualize.')
             else: # transformed annotations
-                print(f'{idx+1}. Original Labels: {label["labels"]} | Visualized Labels: "category_name": {label_names}, "category_id": {label_ids}, "bboxes": {bbox_coords}')
+                print(f'{idx+1}. Original Labels: {label["labels"]} | Visualized Labels: "category_name": {label_names}, "category_id": {label_ids}, "xyxy": {bbox_coords}')
 
             # Get bbox color from template
             bbox_colors = [eval(polyp['outline']) for polyp in self.polyp_classes for id in label_ids if polyp['id']==id]
@@ -314,7 +321,7 @@ class ODDataset():
         # Organize images in a grid
         # To use torchvision.utils.make_grid() we need to convert the images to tensors
         # We also resize them, as not all of the images have equal size
-        tensorize = Compose([Resize(resize,resize), ToTensorV2()])
+        tensorize = ToTensorV2()
 
         images = [tensorize(image=img)['image'] for img in images]
 
