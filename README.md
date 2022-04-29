@@ -37,6 +37,9 @@ Automated colorectal polyp detection using Deep Learning in colonoscopy-video im
   4. [Install the dependencies](#4-install-the-dependencies)
 * [Repository Structure](#repository-structure)
 * [Usage](#usage)
+  1. [Dataset](#dataset)
+  2. [Training](#training)
+  3. [Inference](#inference)
 * [Contacts & Acknowledgements](#contacts--acknowledgements)
 
 # Introduction
@@ -142,18 +145,18 @@ This is only a high-level overview of the repository's structure at a glance. Th
 
 Follow the instructions at the bottom of the [SUN Dataset website](http://sundatabase.org/) to request access to the data.
 
-Then, download the `zip` folders to [`data/00_zip`](./data/00_zip/). Make sure to have enough space on disk. The overall size of the SUN dataset is roughly `67GB`. 
+Then, download the `zip` folders to [`data/00_zip`](./data/00_zip/). Make sure to have enough space on disk. The overall size of the SUN dataset is roughly 67GB. 
 
 
 ### 2. Extract the `zip` folders
 
 After downloading is done, extract the `zip` folders into [`data/01_raw`](./data/01_raw/). 
 
-You should end up with `101` folders:
-- `x100 case` folders, containing 100 video sequences, each with a different polyp.
--  `x1 annotation_txt` folder, containing the bounding box annotations for each image in each sequence/case.
+You should end up with **101** folders:
+- 100 `case` folders, containing 100 video sequences, each with a different polyp.
+- 1 `annotation_txt` folder, containing the bounding box annotations for each image in each sequence/case.
 
-Negative frames come from the first `13` cases. When unzipping the `zip` folders, make sure that the negative frames go in the corresponding `case` folders, where also positive frames reside.
+Negative frames come from the first 13 cases. When unzipping the `zip` folders, make sure that the negative frames go in the corresponding `case` folders, where also positive frames reside.
 
 ### 3. Organize `data` folder
 
@@ -163,7 +166,7 @@ This notebook takes care of organizing images and annotations in the correspondi
 
 Particularly, it will:
 * Read SUN annotations and create custom annotation files (you can inspect the template here: [`data/02_intermediate/annotation_template.json`](./data/02_intermediate/annotation_template.json)). 
-* Save/move **all** images and corresponding custom annotations to [`data/03_primary/images](./data/03_primary/images/) and [`data/03_primary/labels](./data/03_primary/labels/), respectively. A single [`labels.json`](./data/03_primary/labels.json) file containing all the annotations will be created too. 
+* Save/move **all** images and corresponding custom annotations to [`data/03_primary/images`](./data/03_primary/images/) and [`data/03_primary/labels`](./data/03_primary/labels/), respectively. A single [`labels.json`](./data/03_primary/labels.json) file containing all the annotations will be created too. 
 * Split the dataset into `training` and `validation` split, on a per-class basis (i.e., both `train` and `val` split will contain the same proportion of class instances), and save the data splits in [`data/04_model_input/train`](./data/04_model_input/train/) and [`data/04_model_input/val`](./data/04_model_input/val/), respectively.
 
 
