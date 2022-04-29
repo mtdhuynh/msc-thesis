@@ -8,13 +8,15 @@ import tqdm
 
 from albumentations import Compose, Resize
 from albumentations.pytorch import ToTensorV2
+
+from utilities.bboxes_utils import normalize_bbox
     
-class ODDataset(torch.utils.data.Dataset):
+class ODDataset():
     """
     Custom dataset object for Object Detection (OD) tasks.
     Reads and stores the images, corresponding bounding boxes and labels.
     """
-    def __init__(self, fpath, transforms=None, cache=False):
+    def __init__(self, fpath, bbox_format='pascal_voc', transforms=None, cache=False):
         """
         Reads images and labels pairs, given the path to the dataset split (train or val).
 
@@ -22,7 +24,12 @@ class ODDataset(torch.utils.data.Dataset):
         will only include scaling, normalization, and conversion to torch.Tensor.
         Transforms should be a list of "albumentations.Compose" transforms.
 
-        Th "cache" option allows users to read and load data to memory when instantiating the ODDataset object. 
+        The "bbox_format" parameter specifies the format to use for the bbox coordinates:
+        - 'yolo' = normalized([x-center, y-center, width, height])
+        - 'coco' = [x-center, y-center, width, height]
+        - 'pascal_voc' = [x1, y1, x2, y2]
+ 
+        The "cache" option allows users to read and load data to memory when instantiating the ODDataset object. 
         Caching takes some time and requires appropriate hardware resources, as it loads and stores all the images 
         on CPU first (then eventually batches are moved to the GPU if available, through "to(device)"). 
         In turn, this should allow for speed-up in training times, as we reduce the I/O bottleneck of loading and
@@ -30,6 +37,7 @@ class ODDataset(torch.utils.data.Dataset):
         
         Parameters:
             fpath (str)         : full path to the directory that contains 'images' and 'labels' folders.
+            bbox_format (str)   : the format to use for the the bbox coordinates. ['yolo', 'coco', 'pascal_voc'], see docstring.
             transforms (list)   : list of transforms to apply to the images. 
             cache (bool)        : whether to cache the data or not. 
         """    
@@ -40,8 +48,11 @@ class ODDataset(torch.utils.data.Dataset):
             raise Exception(f'The specified data folder path is not valid: {fpath}.')
         
         # Get images and labels paths list
-        self.images_list = os.listdir(self.images_path)
+        self.images_list = [img_fname for img_fname in os.listdir(self.images_path) if img_fname.endswith('.jpg')] # esclude system files
         self.labels_list = [fname[:-4]+'.json' for fname in self.images_list]
+
+        # Annotations format
+        self.bbox_format = bbox_format
         
         # Transforms
         self.transforms = transforms
@@ -79,7 +90,7 @@ class ODDataset(torch.utils.data.Dataset):
         return len(self.images_list)
 
     def __repr__(self):
-        return f'ODDataset(fpath="{os.path.split(self.images_path)[0]}", transforms={self.transforms}, cache={self.cache})'\
+        return f'ODDataset(fpath="{os.path.split(self.images_path)[0]}", bbox_format={self.bbox_format}, transforms={self.transforms}, cache={self.cache})'\
         
     def _read(self, img_fname, label_fname):
         """
@@ -106,7 +117,7 @@ class ODDataset(torch.utils.data.Dataset):
 
         return image, label
 
-    def _transform(self, image, label, transforms):
+    def _transform(self, image, label, transforms, bbox_format=None):
         """
         Applies an augmentation pipeline to both input image and label.
         Uses albumentations library to do so.
@@ -126,14 +137,25 @@ class ODDataset(torch.utils.data.Dataset):
             image (np.ndarray)                  : input image (RGB, HWC formats).
             label (dict)                        : annotation dict as specified in the annotation template.
             transforms (albumentations.Compose) : list of augmentations to apply.
+            format (str)                        : format of bounding boxes coordinates
 
         Returns:
             transformed (dict)
         """
         # Parse the labels
-        # For each annotation of each image, save bbox coordinates, class IDs and names.
+        # For each annotation of each image, save bbox (xyxy and xywh) coordinates, class IDs and names.
+        if bbox_format is None:
+            bbox_format = 'pascal_voc' # defaults to xyxy coords
+
         if label['labels']: # positive images
-            bboxes = [lbl['bbox'] for lbl in label['labels']]
+            if bbox_format == 'pascal_voc':
+                bboxes = [lbl['xyxy'] for lbl in label['labels']]
+            elif bbox_format == 'coco':
+                bboxes = [lbl['xywh'] for lbl in label['labels']]
+            elif bbox_format == 'yolo':
+                src_format = 'xywh'
+                bboxes = [normalize_bbox(lbl[src_format], src_format=src_format, img_width=image.shape[1], img_height=image.shape[0]) for lbl in label['labels']]
+
             class_ids = [lbl['category_id'] for lbl in label['labels']]
             class_names = [lbl['category_name'] for lbl in label['labels']]
         else: # negative images
@@ -174,7 +196,7 @@ class ODDataset(torch.utils.data.Dataset):
         if transforms is None:
             transforms = self.transforms
 
-        transformed = self._transform(image, label, transforms)
+        transformed = self._transform(image, label, transforms, self.bbox_format)
 
         # Augmented image
         transformed_image = transformed['image']
@@ -189,11 +211,13 @@ class ODDataset(torch.utils.data.Dataset):
 
         return transformed_image, target
 
-    def visualize(self, transformed=False, n=10, nrow=5, bbox_width=5, font_scale=1.2, thickness=2):
+    def visualize(self, images_list=None, transformed=False, n=10, nrow=5, bbox_width=5, font_scale=1.2, thickness=2, resize=512):
         """
         Visualizes a grid of images with bounding box annotations.
 
-        It loads random images and labels, draws the bounding boxes and corresponding label texts,
+        If "images_list" is specified, it should be a list of images paths to visualize.
+
+        If "images_list" is None, it loads random images and labels, draws the bounding boxes and corresponding label texts,
         then puts them neatly in a grid.
         Uses torch.utils.make_grid().
 
@@ -207,48 +231,63 @@ class ODDataset(torch.utils.data.Dataset):
         It returns a grid of images, which is in the form of one torch.Tensor image with CHW format.
         
         Parameters:
-            transformed (bool)  : whether to apply augmentations before displaying or not.
-            n (int)             : number of images to visualize.
-            nrow (int)          : number of rows for the image grid.
-            bbox_width (int)    : controls the thickness of the bbox outline (in pixel).
-            font_scale (float)  : controls the size of the label text (relative to the font base size).
-            thickness (int)     : controls the thickness of the line used for drawing the text (in pixel).
+            images_list (str, list) : image or list of images path to visualize.
+            transformed (bool, str) : whether to apply augmentations before displaying or not. If not False, should be either 'train' or 'val'.
+            n (int)                 : number of images to visualize.
+            nrow (int)              : number of rows for the image grid.
+            bbox_width (int)        : controls the thickness of the bbox outline (in pixel).
+            font_scale (float)      : controls the size of the label text (relative to the font base size).
+            thickness (int)         : controls the thickness of the line used for drawing the text (in pixel).
+            resize (int)            : the size of each output image. 
 
         Returns:
             grid (torch.Tensor)
         """
         # Import here to avoid conflicts       
         from data.dataset_utils import get_transforms
-        from utilities.drawing_utils import draw_bbox, plot_grid 
-        
-        # Get n random images and labels
-        RNG = np.random.default_rng()
+        from utilities.bboxes_utils import draw_bbox, plot_grid 
 
-        indexes = RNG.choice(len(self.images_list), n, replace=False)
+        if images_list is not None:
+            image_samples = images_list if isinstance(images_list, list) else [images_list]
+            label_samples = [fpath[:-4]+'.json' for fpath in image_samples]
+        else:            
+            # Get n random images and labels
+            RNG = np.random.default_rng()
 
-        image_samples = [self.images_list[idx] for idx in indexes]
-        label_samples = [self.labels_list[idx] for idx in indexes]
+            indexes = RNG.choice(len(self.images_list), n, replace=False)
+
+            image_samples = [self.images_list[idx] for idx in indexes]
+            label_samples = [self.labels_list[idx] for idx in indexes]
 
         images = []
 
         # Load n images and labels
-        for img_fname, lbl_fname in zip(image_samples, label_samples):
+        for idx, (img_fname, lbl_fname) in enumerate(zip(image_samples, label_samples)):
             image, label = self._read(img_fname, lbl_fname)
 
+            print(f'{idx+1}. ImageID: {label["image_id"]} | Original Image Height, Width: {image.shape[:2]} | Resized to: {resize}')
+            
             if not transformed:
                 if not label['labels']: 
                     # If no annotations (negative image), plot it anyway and go to next image
                     images.append(image)
+                    print(f'{idx+1}. Original Labels: {label["labels"]} | No labels to visualize.')
                     continue
                 elif label['labels']: 
                 # If annotations, draw on original and positive images
                 # Extract relevant annotations (we assume one annotation per image)
-                    bbox_coords = [lbl['bbox'] for lbl in label['labels']]
+                    bbox_coords = [lbl['xyxy'] for lbl in label['labels']] # use pascal_voc format
                     label_ids = [lbl['category_id'] for lbl in label['labels']]
                     label_names = [lbl['category_name'] for lbl in label['labels']]
             else: # Apply transforms to image
-                # Get training transforms without normalization
-                transforms_no_norm = get_transforms(mode='train', specs={'resize': 512, 'min_area': 900, 'min_visibility': 0.2}, normalize=False)
+                # Get training transforms WITHOUT normalization+totensor
+                transforms_no_norm = get_transforms(mode=transformed, params={'transforms': {
+                    'resize': resize, 
+                    'min_area': 900, 
+                    'min_visibility': 0.2
+                    },
+                'format': 'pascal_voc'
+                }, normalize=False)
                 # Apply transforms
                 transf = self._transform(image, label, transforms_no_norm)
 
@@ -257,6 +296,12 @@ class ODDataset(torch.utils.data.Dataset):
                 bbox_coords = np.array(transf['bboxes'], dtype=np.int64)
                 label_names = transf['label_names']
                 label_ids = np.array(transf['label_ids'], dtype=np.int64)
+            
+            # Print info
+            if len(bbox_coords)==0: # no annotations
+                print(f'{idx+1}. Original Labels: {label["labels"]} | No labels to visualize.')
+            else: # transformed annotations
+                print(f'{idx+1}. Original Labels: {label["labels"]} | Visualized Labels: "category_name": {label_names}, "category_id": {label_ids}, "bboxes": {bbox_coords}')
 
             # Get bbox color from template
             bbox_colors = [eval(polyp['outline']) for polyp in self.polyp_classes for id in label_ids if polyp['id']==id]
@@ -269,7 +314,7 @@ class ODDataset(torch.utils.data.Dataset):
         # Organize images in a grid
         # To use torchvision.utils.make_grid() we need to convert the images to tensors
         # We also resize them, as not all of the images have equal size
-        tensorize = Compose([Resize(1000,1000), ToTensorV2()])
+        tensorize = Compose([Resize(resize,resize), ToTensorV2()])
 
         images = [tensorize(image=img)['image'] for img in images]
 

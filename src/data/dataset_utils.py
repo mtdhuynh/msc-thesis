@@ -8,7 +8,7 @@ from data.dataloaders import ODDataloader
 from data.datasets import ODDataset
 from utilities.logging_utils import log_tb_images
 
-def get_dataloader(mode, dataset, specs, logger=None):
+def get_dataloader(mode, dataset, params, logger=None):
     """
     This functions returns a torch.utils.data.DataLoader object that contains
     the batches of data used for training/evaluation of the model.
@@ -16,7 +16,7 @@ def get_dataloader(mode, dataset, specs, logger=None):
     Parameters:
         mode (str)                          : specifies the data split. Either 'train' or 'val'.
         dataset (torch.utils.data.Dataset)  : the input data from which to load the batches.
-        specs (dict)                        : dict of dataloading configuration (batch size, number of workers, etc.).
+        params (dict)                       : dict of dataloading configuration (batch size, number of workers, etc.).
         logger (logging.logger)             : python logger object.
 
     Returns:
@@ -28,18 +28,18 @@ def get_dataloader(mode, dataset, specs, logger=None):
     # Create torch.utils.data.DataLoader object
     dataloader = ODDataloader(
         dataset, 
-        batch_size=specs['batch_size'], 
+        batch_size=params['batch_size'], 
         shuffle=shuffle,
-        num_workers=specs['num_workers'],
-        pin_memory=specs['pin_memory']
+        num_workers=params['num_workers'],
+        pin_memory=params['pin_memory']
     )
     
     if logger:
-        logger.info(f'Using {mode} dataloader with batch_size={specs["batch_size"]}, shuffle={shuffle}, num_workers={specs["num_workers"]}, pin_memory={specs["pin_memory"]}.')
+        logger.info(f'Using {mode} dataloader with batch_size={params["batch_size"]}, shuffle={shuffle}, num_workers={params["num_workers"]}, pin_memory={params["pin_memory"]}.')
 
     return dataloader
 
-def get_dataset(mode, fpath, transforms, cache=False, tb_writer=None, logger=None):
+def get_dataset(mode, fpath, transforms, bbox_format, cache=False, tb_writer=None, logger=None):
     """
     This function returns a torch.utils.data.Dataset object that contains the
     data used for training/evaluation of the model.
@@ -48,6 +48,7 @@ def get_dataset(mode, fpath, transforms, cache=False, tb_writer=None, logger=Non
         mode (str)                              : specifies the data split. Either 'train' or 'val'.
         fpath (str)                             : the full path to the input data folder. Should contain 'train' and 'val' folders.
         transforms (albumentations.Compose)     : list of transforms to be applied for augmentation.
+        bbox_format (str)                       : format of the bbox coordinates ('yolo', 'coco', 'pascal-voc').
         cache (bool)                            : whether to cache the data when instantiating the dataset object.
         tb_writer (tensorboard.SummaryWriter)   : tensorboard writer.
         logger (logging.logger)                 : python logger object.
@@ -62,7 +63,7 @@ def get_dataset(mode, fpath, transforms, cache=False, tb_writer=None, logger=Non
         logger.info(f'Reading input data from: {data_folder}.')
 
     # Create torch.utils.data.Dataset object
-    dataset = ODDataset(fpath=data_folder, transforms=transforms, cache=cache)
+    dataset = ODDataset(fpath=data_folder, transforms=transforms, bbox_format=bbox_format, cache=cache)
 
     # Log images to tensorboard
     if tb_writer:
@@ -73,7 +74,7 @@ def get_dataset(mode, fpath, transforms, cache=False, tb_writer=None, logger=Non
 
     return dataset
 
-def get_transforms(mode, specs, normalize=True, logger=None):
+def get_transforms(mode, params, normalize=True, logger=None):
     """
     Load standard transforms based on data split.
     Base transform pipeline is: [Resize, Normalize, ToTensor].
@@ -95,7 +96,7 @@ def get_transforms(mode, specs, normalize=True, logger=None):
 
     Parameters:
         mode (str)              : specifies the data split. Either 'train' or 'val'.
-        specs (dict)            : dict with specifications for transforms (resize, etc.).
+        params (dict)           : dict with specifications for transforms (resize, etc.).
         normalize (bool)        : whether to apply normalization or not. Used mainly for drawing purposes. See ODDataset.visualize() method.
         logger (logging.logger) : python logger object.
     
@@ -103,12 +104,13 @@ def get_transforms(mode, specs, normalize=True, logger=None):
         transforms (albumentations.Compose)
     """
     # Read specifications
-    resize = specs['resize'] # Output resize resolution
-    min_area = specs['min_area'] # Bboxes smaller than "min_area" are dropped
-    min_visibility = specs['min_visibility'] # Bboxes smaller than "min_visibility*original_bbox_area" are dropped
+    resize = params['transforms']['resize'] # Output resize resolution
+    bbox_format = params['format'] # bbox format
+    min_area = params['transforms']['min_area'] # Bboxes smaller than "min_area" are dropped
+    min_visibility = params['transforms']['min_visibility'] # Bboxes smaller than "min_visibility*original_bbox_area" are dropped
     
     # Define bbox parameters
-    bbox_params = A.BboxParams(format='pascal_voc', min_area=min_area, min_visibility=min_visibility, label_fields=['label_ids', 'label_names'])
+    bbox_params = A.BboxParams(format=bbox_format, min_area=min_area, min_visibility=min_visibility, label_fields=['label_ids', 'label_names'])
 
     # Define base transform pipeline
     if normalize:    
