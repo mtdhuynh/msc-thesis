@@ -1,6 +1,7 @@
 dataset:
   fpath: '/home/thuynh/ms-thesis/data/04_model_input'
   cache: False
+  format: 'yolo'
   transforms:
     resize: 512
     normalize: True
@@ -22,14 +23,11 @@ training:
     lr: 1.0e-3
     weight_decay: 0.0005
   loss:
-    name: 'CrossEntropyLoss'
-  metrics:
-    ConfusionMatrix:
-      device: 'cuda'
-      num_classes: 3
-    Fbeta:
-      beta: 1
-      average: False
+    name: 'yolo'
+    fl_gamma: 1.5 # use focal_loss, else 0.0
+  mAP:
+    box_format: 'xyxy'
+    class_metrics: True
   lr_scheduler:
     name: 'CyclicLR'
     base_lr: 1.0e-8
