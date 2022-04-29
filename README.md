@@ -49,18 +49,14 @@ For this purpose, data from the [SUN Dataset](http://sundatabase.org/) will be u
 
 # Installation
 
-### 1. Download the SUN Dataset
+### 1. Install [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
 
-Follow the instructions at the bottom of the [SUN Dataset website](http://sundatabase.org/) to request access to the data.
-
-### 2. Install [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
-
-### 3. Clone the repository
+### 2. Clone the repository
 ```
 git clone https://github.com/mtdhuynh/ms-thesis.git
 ```
 
-### 4. Install the dependencies
+### 3. Install the dependencies
 **Note**: if working from a Windows OS, the following commands must be run from the `Anaconda prompt`.
 
 Ensure no previous conda environments exist:
@@ -98,24 +94,33 @@ The repository has been structured as follows:
 │   ├───01_raw
 │   ├───02_intermediate
 │   ├───03_primary
+|   |   ├───images
+|   |   └───labels
 │   ├───04_model_input
+|   |   ├───config
+|   |   ├───train
+|   |   └───val
 │   ├───05_models
 │   ├───06_model_output
+|   |   └───runs
 │   └───07_reporting
 │
 ├───docs
 ├───images
 ├───notebooks
 ├───src
-│   ├───dataloaders
-│   ├───inference
+│   ├───data
+│   ├───detection_models
+|   |   └───model_zoo
+│   ├───losses
 │   ├───lr_schedulers
 │   ├───metrics
-│   ├───models
 │   ├───optimizers
-│   ├───train
-│   └───utils
-│
+│   ├───utilities
+|   ├───main.py
+|   └───requirements.yaml
+|
+├───slurm.sh
 ```
 
 
@@ -127,7 +132,85 @@ The repository has been structured as follows:
 | `docs` | Contains documentation, slide decks, and reports regarding the project. | `documentation`, `reports` |
 | `src` | Contains all the source code and scripts used in the project. | `python`, `pytorch`, `conda`, `code` |
 
+This is only a high-level overview of the repository's structure at a glance. The interested reader should go ahead and inspect each single folder and file.
+
 # Usage
+
+## Dataset
+
+### 1. Download the SUN Dataset
+
+Follow the instructions at the bottom of the [SUN Dataset website](http://sundatabase.org/) to request access to the data.
+
+Then, download the `zip` folders to [`data/00_zip`](./data/00_zip/). Make sure to have enough space on disk. The overall size of the SUN dataset is roughly `67GB`. 
+
+
+### 2. Extract the `zip` folders
+
+After downloading is done, extract the `zip` folders into [`data/01_raw`](./data/01_raw/). 
+
+You should end up with `101` folders:
+- `x100 case` folders, containing 100 video sequences, each with a different polyp.
+-  `x1 annotation_txt` folder, containing the bounding box annotations for each image in each sequence/case.
+
+Negative frames come from the first `13` cases. When unzipping the `zip` folders, make sure that the negative frames go in the corresponding `case` folders, where also positive frames reside.
+
+### 3. Organize `data` folder
+
+Open [`notebooks/data_management.ipynb`](./notebooks/data_management.ipynb) and run cell by cell.
+
+This notebook takes care of organizing images and annotations in the corresponding `data` folders (according to the [data engineering convention](https://towardsdatascience.com/the-importance-of-layered-thinking-in-data-engineering-a09f685edc71)] mentioned above). 
+
+Particularly, it will:
+* Read SUN annotations and create custom annotation files (you can inspect the template here: [`data/02_intermediate/annotation_template.json`](./data/02_intermediate/annotation_template.json)). 
+* Save/move **all** images and corresponding custom annotations to [`data/03_primary/images](./data/03_primary/images/) and [`data/03_primary/labels](./data/03_primary/labels/), respectively. A single [`labels.json`](./data/03_primary/labels.json) file containing all the annotations will be created too. 
+* Split the dataset into `training` and `validation` split, on a per-class basis (i.e., both `train` and `val` split will contain the same proportion of class instances), and save the data splits in [`data/04_model_input/train`](./data/04_model_input/train/) and [`data/04_model_input/val`](./data/04_model_input/val/), respectively.
+
+
+## Training
+
+The following commands are used to train an object detection model of choice from scratch on the SUN dataset. 
+
+### 1. Select a training configuration `yaml` file
+
+In [`data/04_model_input/config`](./data/04_model_input/config/) you can find a few presets for training available models with out-of-the-box hyperparameters. 
+
+If you wish to define your own configuration file, please do follow the structure of those `yaml` files.
+
+### 2. Run `train.py`
+
+Make sure you are in the `ms-thesis` project folder, and that the `conda` environment is active. Then, run:
+```
+python src/train.py
+```
+
+This will run the model training with default settings on the available device.
+
+For a list of command-line arguments, please run:
+```
+python src/train.py --help
+```
+
+For example, to train with a custom configuration file, on the first `GPU` available, without logging and running `tensorboard` at the end of the training, run:
+```
+python src/train.py --config <path/to/custom/config_file.yaml> --device cuda:0 --run-tensorboard --no-verbose
+```
+
+Every other training hyperparameter should be edited in the config `yaml` file. 
+
+### 3. Inspect results
+
+Results from the training are saved by default to [`data/06_model_output/runs`](./data/06_model_output/runs/). The `runs` folder contains a folder for each different **model** (i.e., `arch` field in the configuration file). Each model folder contains each run's output in another unique folder (identified by `<YYYY-MM-DD_hh_mm_ss>_<SLURM_JOB_ID>`).
+
+Each result folder contains:
+* Output log file (`.log`).
+* `tensorboard` run file (`events.out.tfevents.[...]`).
+* Configuration file (`.yaml`).
+* `models` folder, containing `checkpoint_<N>.pt` and `best_model.pt` (state dicts at epoch #N and at best loss/metric).
+
+## Inference
+
+**TBD**
 
 # Contacts & Acknowledgements
 
