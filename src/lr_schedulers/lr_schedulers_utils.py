@@ -25,6 +25,6 @@ def get_lr_scheduler(optimizer, logger=None, **params):
         name = params['name']
         params = {k: v for k,v in params.items() if k!='name'}
 
-        lr_scheduler = LR_Scheduler(optimizer, name, **params)
+        lr_scheduler = LR_Scheduler(optimizer, name, **params).lr_scheduler
 
     return lr_scheduler
