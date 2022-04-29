@@ -4,6 +4,7 @@ import os
 import shutil
 import yaml
 
+import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from utilities.general_utils import fix_seed
@@ -40,9 +41,9 @@ def main(config, device, writer, logger):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='setup')
     parser.add_argument("--config", type=str, default='/home/thuynh/ms-thesis/data/04_model_input/config/yolov3.yaml', help='Configuration setup file to use for model training.')
-    parser.add_argument("--device", type=str, default='cpu', help='Device (CUDA if available) to use for model training.')
-    parser.add_argument("--run-tensorboard", type=bool, default=False, choices=[True, False], help='If True, open tensorboard in a browser window at the end of training.')
-    parser.add_argument("--verbose", type=bool, default=True, choices=[True, False], help='If False, only logs training progress. If True, also logs the preparation phase.')
+    parser.add_argument("--device", type=str, default=torch.device('cuda' if torch.cuda.is_available() else 'cpu'), help='Device (CUDA if available) to use for model training.')
+    parser.add_argument("--run-tensorboard", action='store_true', help='Open tensorboard in a browser window at the end of training.')
+    parser.add_argument("--no-verbose", action='store_false', help='Do not save logs output.')
 
     args = parser.parse_args()
     
@@ -53,13 +54,15 @@ if __name__ == '__main__':
         print("Exception: ", ex)
 
     # Make logdir name unique
-    try:
-        # If running with SLURM, use the SLURM job ID
-        logdir_id = os.environ['SLURM_JOB_ID']
-    except: 
-        # If running locally, use current timestamp
-        logdir_id = str(datetime.datetime.now()).split(".")[0].replace(" ", "_")
-        logdir_id = logdir_id.replace(":", "_")
+    # Use the timestamp for cronological ordering
+    ts = str(datetime.datetime.now()).split(".")[0].replace(" ", "_")
+    ts = ts.replace(":", "_")
+    
+    # If running with SLURM, get the JobID (else use 0000)
+    slurm_id = os.environ.get('SLURM_JOB_ID', '0000')
+    
+    # Unique ID is: "timestamp_jobID"
+    logdir_id = "_".join([ts, str(slurm_id)])
     
     # The directory where the training outputs will be saved is under:
     # "~/ms-thesis/data/06_model_output/runs"
@@ -70,13 +73,19 @@ if __name__ == '__main__':
     # 4. Resize: resize resolution (e.g., 144, 256, 512, etc.)
     # 5. Batch_Size: batch size for dataloading (e.g., 1, 8, 16, etc.) 
 
+    # Example: runs/yolov3/2542_
+
     logdir = os.path.join(
         "/home/thuynh/ms-thesis/data/06_model_output/runs", 
         config['model']['arch'], # arch_name
-        logdir_id + '_' + # unique_log_id
-        config['model']['backbone'] + '_' + # backbone_name
-        str(config['dataset']['transforms']['resize']) + '_' + # resize
-        'bs' + str(config['training']['batch_size']) # batch_size
+        "_".join(
+            [
+                logdir_id, # timestamp_jobID
+                config['model']['backbone'], # model backbone
+                str(config['dataset']['transforms']['resize']), # input image size (after transform)
+                'bs'+str(config['training']['batch_size']) # batch size
+            ]
+        )
     ) 
 
     # Setup tensorboard writer
@@ -87,10 +96,10 @@ if __name__ == '__main__':
     shutil.copy(args.config, logdir)
 
     # Setup logger object
-    if args.verbose:
-        logger = get_logger(logdir)
-    else:
+    if args.no_verbose:
         logger = None
+    else:
+        logger = get_logger(logdir)
 
     if logger:
         logger.info(f'Output folder: {logdir}')
