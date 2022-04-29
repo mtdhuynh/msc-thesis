@@ -211,6 +211,14 @@ Each result folder contains:
 * Configuration file (`.yaml`).
 * `models` folder, containing `checkpoint_<N>.pt` and `best_model.pt` (state dicts at epoch #N and at best loss/metric).
 
+To inspect the results for each run, open a `tensorboard` session:
+```
+tensorboard --logdir data/06_model_output/runs
+```
+The command will prompt to a browser local window with the `tensorboard` UI.
+
+For more information about `tensorboard`, see the [docs](https://www.tensorflow.org/tensorboard).
+
 ## Inference
 
 **TBD**
