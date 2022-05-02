@@ -2,7 +2,7 @@ import torch
 
 import detection_models
 
-SUPPORTED_ARCHITECTURES = ['yolov3', 'yolov5']
+SUPPORTED_ARCHITECTURES = ['retinanet', 'yolov3', 'yolov5']
 
 class ODModel():
     """
@@ -27,6 +27,8 @@ class ODModel():
         self.pretrained = specs['pretrained']
         self.model_backbone = specs['backbone'] # can also be the model version (e.g. yolov3_tiny)
         self.num_classes = specs['num_classes']
+        # backbone parameters (mainly for torchvision.models, not YOLO-models)
+        self.other_kwargs = {k: v for k,v in specs.items() if k not in ('arch', 'pretrained', 'backbone', 'num_classes')}
 
         # Load model from our model_zoo
         try:
@@ -37,4 +39,4 @@ class ODModel():
             print(f'Available object detection model architectures: {SUPPORTED_ARCHITECTURES}')
 
         # Initialize the model (model will be returned already on selected device)
-        self.model = model_func(backbone=self.model_backbone, pretrained=self.pretrained, num_classes=self.num_classes, device=self.device)
+        self.model = model_func(backbone=self.model_backbone, pretrained=self.pretrained, num_classes=self.num_classes, device=self.device, other_kwargs=self.other_kwargs)
