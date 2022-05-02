@@ -2,6 +2,8 @@ import logging
 import os
 import sys
 
+import torch
+
 def log_tb_images(dataset, tb_writer):
     """
     Generates grids of original and (training) augmented images with their
@@ -31,7 +33,7 @@ def get_logger(logdir):
     logger = logging.getLogger("Automatic Polyp Detection")
     
     # Get unique ID of run
-    run_id = os.path.basename(logdir).split('_')[0]
+    run_id = os.environ.get('SLURM_JOB_ID', os.path.basename(logdir).split('_')[0]) # either jobID or timestamp
 
     file_path = os.path.join(logdir, f"run_{run_id}.log")
 
@@ -50,3 +52,34 @@ def get_logger(logdir):
     logger.setLevel(logging.INFO)
 
     return logger
+
+def save_model(fname, model, epoch, optimizer, lr_scheduler, run_history, best_loss):
+    """
+    Saves the input model, optimizer, scheduler's state dicts. 
+
+    Parameters:
+        fname (str)                             : filename (with path) to save. 
+        model (torch.nn.Module)                 : trained model.
+        epoch (int)                             : current training epoch (+1). 
+        optimizer (torch.optim)                 : optimizer.
+        lr_scheduler (torch.optim.lr_scheduler) : learning rate scheduler.
+        run_history (dict)                      : dict with the logged metrics, losses, etc.
+        best_loss (float)                       : best loss value so far.
+
+    Returns: 
+        None
+    """
+    # Make sure the device is on the CPU for compatibility-safe loading on any system
+    model.to('cpu')
+
+    torch.save(
+        {
+            'epoch': int(epoch),
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'lr_scheduler_state_dict': lr_scheduler.state_dict(),
+            'run_history': run_history,
+            'best_loss': best_loss
+        },
+        fname # .pt extension
+    )

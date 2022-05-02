@@ -182,7 +182,7 @@ If you wish to define your own configuration file, please do follow the structur
 
 ### 2. Run `train.py`
 
-Make sure you are in the `ms-thesis` project folder, and that the `conda` environment is active. Then, run:
+Make sure you are in the `ms-thesis` project folder, and that the corresponding `conda` environment is active. Then, run:
 ```
 python src/train.py
 ```
