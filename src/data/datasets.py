@@ -211,7 +211,7 @@ class ODDataset():
 
         return transformed_image, target
 
-    def visualize(self, images_list=None, transformed=False, n=10, nrow=5, resize=512, font_scale=0.5, thickness=1, bbox_width=2):
+    def visualize(self, images_list=None, transformed=False, n=10, nrow=5, resize=512, font_scale=0.5, thickness=1, bbox_width=2, verbose=False):
         """
         Visualizes a grid of images with bounding box annotations.
 
@@ -239,6 +239,7 @@ class ODDataset():
             font_scale (float)      : controls the size of the label text (relative to the font base size).
             thickness (int)         : controls the thickness of the line used for drawing the text (in pixel).
             bbox_width (int)        : controls the thickness of the bbox outline (in pixel).
+            verbose (bool)          : whether or not to print information about the images and labels being visualized.
 
         Returns:
             grid (torch.Tensor)
@@ -266,7 +267,8 @@ class ODDataset():
         for idx, (img_fname, lbl_fname) in enumerate(zip(image_samples, label_samples)):
             image, label = self._read(img_fname, lbl_fname)
 
-            print(f'{idx+1}. ImageID: {label["image_id"]} | Original Image Height, Width: {image.shape[:2]} | Resized to: {resize}')
+            if verbose:
+                print(f'{idx+1}. ImageID: {label["image_id"]} | Original Image Height, Width: {image.shape[:2]} | Resized to: {resize}')
             
             if not transformed:
                 # mode='val' + normalize=False = only Resize transforms
@@ -305,10 +307,11 @@ class ODDataset():
             label_ids = np.array(transf['label_ids'], dtype=np.int64)
             
             # Print info
-            if len(bbox_coords)==0: # no annotations
-                print(f'{idx+1}. Original Labels: {label["labels"]} | No labels to visualize.')
-            else: # transformed annotations
-                print(f'{idx+1}. Original Labels: {label["labels"]} | Visualized Labels: "category_name": {label_names}, "category_id": {label_ids}, "xyxy": {bbox_coords}')
+            if verbose:
+                if len(bbox_coords)==0: # no annotations
+                    print(f'{idx+1}. Original Labels: {label["labels"]} | No labels to visualize.')
+                else: # transformed annotations
+                    print(f'{idx+1}. Original Labels: {label["labels"]} | Visualized Labels: "category_name": {label_names}, "category_id": {label_ids}, "xyxy": {bbox_coords}')
 
             # Get bbox color from template
             bbox_colors = [eval(polyp['outline']) for polyp in self.polyp_classes for id in label_ids if polyp['id']==id]
