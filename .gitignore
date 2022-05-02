@@ -6,6 +6,7 @@ data/03_primary/
 data/04_model_input/
 data/05_models/
 data/06_model_output/
+logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
