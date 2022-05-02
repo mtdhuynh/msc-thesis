@@ -2,7 +2,7 @@ import torch
 
 import detection_models
 
-SUPPORTED_ARCHITECTURES = ['YOLOv3', 'YOLOv5']
+SUPPORTED_ARCHITECTURES = ['yolov3', 'yolov5']
 
 class ODModel():
     """
@@ -25,13 +25,13 @@ class ODModel():
         # Get specifications
         self.model_arch = specs['arch']
         self.pretrained = specs['pretrained']
-        self.model_backbone = specs['backbone'] # can also be the model version (e.g. yolov3-TINY)
+        self.model_backbone = specs['backbone'] # can also be the model version (e.g. yolov3_tiny)
         self.num_classes = specs['num_classes']
 
         # Load model from our model_zoo
         try:
             # Get the function from the package list
-            model_func = detection_models.__dict__[self.model_arch]
+            model_func = detection_models.__dict__[self.model_arch.lower()]
         except Exception as e:
             print(e)
             print(f'Available object detection model architectures: {SUPPORTED_ARCHITECTURES}')

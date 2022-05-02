@@ -2,7 +2,7 @@ import torch
 
 AVAILABLE_MODELS = ['yolov3', 'yolov3_spp', 'yolov3_tiny']
 
-def YOLOv3(backbone='yolov3', pretrained=True, num_classes=6, device=torch.device('cpu')):
+def yolov3(backbone='yolov3', pretrained=True, num_classes=6, device=torch.device('cpu')):
     """
     YOLOv3 model architecture.
     Loads a YOLOv3 version from torch.hub. Mainly, the model's implementations

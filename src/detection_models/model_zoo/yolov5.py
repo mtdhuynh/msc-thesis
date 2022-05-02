@@ -2,7 +2,7 @@ import torch
 
 AVAILABLE_MODELS = ['yolov5n', 'yolov5s', 'yolov5m', 'yolov5l', 'yolov5x', 'yolov5n6', 'yolov5s6', 'yolov5m6', 'yolov5l6', 'yolov5x6']
 
-def YOLOv5(backbone='yolov5s', pretrained=True, num_classes=6, device=torch.device('cpu')):
+def yolov5(backbone='yolov5s', pretrained=True, num_classes=6, device=torch.device('cpu')):
     """
     YOLOv5 model architecture.
     Loads a YOLOv5 version from torch.hub. Mainly, the model's implementations

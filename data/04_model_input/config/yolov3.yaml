@@ -8,7 +8,7 @@ dataset:
     min_area: 900
     min_visibility: 0.25
 model: 
-  arch: 'YOLOv3'
+  arch: 'yolov3'
   pretrained: False
   backbone: 'yolov3' # yolov3_tiny, yolov3_spp
   num_classes: 6
