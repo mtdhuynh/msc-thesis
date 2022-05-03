@@ -1,8 +1,11 @@
 import argparse
+import copy
 import datetime
 import os
 import shutil
+import time
 import yaml
+from collections import defaultdict
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -13,43 +16,38 @@ from utilities.training_utils import train
 
 SEED = 3407
 
-def main(config, device, writer, logger):
+def main(config, device, tb_writer, logger=None):
     """
-    Main functions. Parses the config file in "prepare_training()", and then
-    launches the training loop in "train()".
-
-    Parameters:
-        config (dict)           : dict of training configuration parameters as specified in the .yaml file.
-        device (str)            : either 'cpu' or 'cuda:<device_no>'.
-        writer (SummaryWriter)  : tensorboard writer object for run logging.
-        logger (logger.Logger)  : logger object for stout and sterr.
+    Launches the main training function.
     """
+    # Start training
     if logger:
         logger.info('Training session started.')
 
-    # Start training session
-    train(config, device, writer, logger)
-
+    train(config, device, tb_writer, logger)
+    
+    # End training
     if logger:
         logger.info('Training session ended.')
     
     # When done with training, make sure all pending events 
     # have been written to disk and close the tensorboard logger
-    writer.flush()
-    writer.close()
+    tb_writer.flush()
+    tb_writer.close()
+        
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='setup')
     parser.add_argument("--config", type=str, default='/home/thuynh/ms-thesis/data/04_model_input/config/yolov3.yaml', help='Configuration setup file to use for model training.')
-    parser.add_argument("--device", type=str, default=torch.device('cuda' if torch.cuda.is_available() else 'cpu'), help='Device (CUDA if available) to use for model training.')
+    parser.add_argument("--device", type=str, default='cuda' if torch.cuda.is_available() else 'cpu', help='Device (CUDA if available) to use for model training.')
     parser.add_argument("--run-tensorboard", action='store_true', help='Open tensorboard in a browser window at the end of training.')
-    parser.add_argument("--no-verbose", action='store_false', help='Do not save logs output.')
+    parser.add_argument("--no-verbose", action='store_true', help='Do not save logs output.')
 
     args = parser.parse_args()
     
     try:
         with open(args.config) as f:
-            config = yaml.load(f, Loader=yaml.FullLoader)
+            config = yaml.safe_load(f)
     except Exception as ex:
         print("Exception: ", ex)
 
@@ -68,12 +66,12 @@ if __name__ == '__main__':
     # "~/ms-thesis/data/06_model_output/runs"
     # The name structure of the current run folder is the following:
     # 1. Arch_Name: name of object detection architecture (e.g., YOLO, SSD, etc.)
-    # 2. Unique_Log_ID: either a timestamp or the SLURM job ID
+    # 2. Unique_Log_ID: timestamp + the SLURM job ID
     # 3. Backbone_Name: name of the backbone network (e.g., ResNet, etc.)
     # 4. Resize: resize resolution (e.g., 144, 256, 512, etc.)
     # 5. Batch_Size: batch size for dataloading (e.g., 1, 8, 16, etc.) 
 
-    # Example: runs/yolov3/2542_
+    # Example: runs/yolov3/2022-02-23_10_48_32_2542_....
 
     logdir = os.path.join(
         "/home/thuynh/ms-thesis/data/06_model_output/runs", 
@@ -94,6 +92,7 @@ if __name__ == '__main__':
     # Save a copy of the config file in the logging directory
     # This also creates the logdir folder
     shutil.copy(args.config, logdir)
+    os.mkdir(os.path.join(logdir, 'models')) # folder to save models into
 
     # Setup logger object
     if args.no_verbose:
@@ -106,9 +105,9 @@ if __name__ == '__main__':
 
     # Fix seed
     fix_seed(SEED)
-    logger.info(f'Fixed random seeds for reproducibility: {SEED}.')
+    if logger:
+        logger.info(f'Fixed random seeds for reproducibility: {SEED}.')
 
-    # Start training
     main(config, args.device, tb_writer, logger)
 
     # [Optional] Run tensorboard after training is done
