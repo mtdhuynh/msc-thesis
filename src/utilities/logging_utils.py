@@ -53,6 +53,26 @@ def get_logger(logdir):
 
     return logger
 
+def get_timestamp(seconds):
+    """
+    Return string with time formatted in days, hours, minutes, seconds:
+    '<dd>d <hh>h <mm>m <ss>s'
+
+    N.B.: Code will break if time exceeds 31 days.
+
+    Parameters:
+        seconds (int)   : time to convert in [s].
+    
+    Returns:
+        timestamp (str)
+    """
+    
+    minutes, secs = divmod(int(seconds), 60)
+    hours, mins = divmod(minutes, 60)
+    days, hrs = divmod(hours, 24)
+    
+    return f'{days:d}d {hrs:02d}h {mins:02d}m {secs:02d}s'
+    
 def save_model(fname, model, epoch, optimizer, lr_scheduler, run_history, best_loss):
     """
     Saves the input model, optimizer, scheduler's state dicts. 
