@@ -4,6 +4,7 @@ import os
 import cv2
 import numpy as np
 import torch
+import torchvision
 import tqdm
 
 from albumentations import Compose, Resize
@@ -36,10 +37,10 @@ class ODDataset():
         moving images from CPU to GPU at runtime. 
         
         Parameters:
-            fpath (str)         : full path to the directory that contains 'images' and 'labels' folders.
-            bbox_format (str)   : the format to use for the the bbox coordinates. ['yolo', 'coco', 'pascal_voc'], see docstring.
-            transforms (list)   : list of transforms to apply to the images. 
-            cache (bool)        : whether to cache the data or not. 
+            fpath (str)                         : full path to the directory that contains 'images' and 'labels' folders.
+            bbox_format (str)                   : the format to use for the the bbox coordinates. ['yolo', 'coco', 'pascal_voc'], see docstring.
+            transforms (albumentations.Compose) : list of transforms to apply to the images. 
+            cache (bool)                        : whether to cache the data or not. 
         """    
         if os.path.isdir(fpath):
             self.images_path = os.path.join(fpath, 'images')
@@ -64,8 +65,8 @@ class ODDataset():
             print('Caching data...')
             self.cached_data = []
             
-            for img_fname, label_fname in tqdm.tqdm(zip(self.images_list, self.labels_list), total=len(self.images_list)):
-                image, label = self.read_and_transform(img_fname, label_fname, self.transforms)
+            for idx, (img_fname, label_fname) in tqdm.tqdm(enumerate(zip(self.images_list, self.labels_list), total=len(self.images_list))):
+                image, label = self.read_and_transform(img_fname, label_fname, self.transforms, idx)
                     
                 # Append to cache list as tuple
                 self.cached_data.append((image, label))
@@ -82,7 +83,7 @@ class ODDataset():
             img_fname = self.images_list[index]
             label_fname = self.labels_list[index]
             
-            image, label = self.read_and_transform(img_fname, label_fname, self.transforms)
+            image, label = self.read_and_transform(img_fname, label_fname, self.transforms, index)
         
         return image, label
         
@@ -159,10 +160,10 @@ class ODDataset():
             class_ids = [lbl['category_id'] for lbl in label['labels']]
             class_names = [lbl['category_name'] for lbl in label['labels']]
         else: # negative images
-            # For images without annotations, use empty tensors
-            bboxes = torch.zeros((0,4), dtype=torch.float32)
-            class_ids = torch.zeros(0, dtype=torch.int64)
-            class_names = torch.zeros(0, dtype=torch.int64)
+            # For images without annotations, use empty list (convert to tensor AFTER transform): https://github.com/pytorch/vision/pull/1911
+            bboxes = []
+            class_ids = []
+            class_names = []
 
         if transforms is None:
             transforms = self.transforms
@@ -172,7 +173,7 @@ class ODDataset():
         return transformed
 
         
-    def read_and_transform(self, img_fname, label_fname, transforms=None):
+    def read_and_transform(self, img_fname, label_fname, transforms=None, idx=None):
         """
         Reads and applies augmentations to image and labels simultaneously. 
         Uses cv2 and albumentations libraries. 
@@ -184,6 +185,7 @@ class ODDataset():
             img_fname (str)                     : filename of the image.
             label_fname (str)                   : filename of the annotation file.
             transforms (albumentations.Compose) : list of transformations to apply.
+            idx (int)                           : the image ID, either as a number or as the image filename.
         
         Returns:
             transformed_image (torch.Tensor)
@@ -202,11 +204,12 @@ class ODDataset():
         transformed_image = transformed['image']
 
         # Augmented labels
+        # We deal with negative frames by putting an empty tensor in 'boxes' and 'labels' of shape [0, 4] and [0] as in: https://github.com/pytorch/vision/pull/1911
         target = {
-            'image_id': img_fname,
-            'boxes': torch.as_tensor(transformed['bboxes'], dtype=torch.float32), # Bbox coordinates
-            'labels': torch.as_tensor(transformed['label_ids'], dtype=torch.int64), # Corresponding class IDs
-            'label_names': transformed['label_names'] # Corresponding class names
+            'image_id': torch.tensor([idx], dtype=torch.int64) if idx else img_fname, # image ID
+            'boxes': torch.as_tensor(transformed['bboxes'], dtype=torch.float32) if transformed['bboxes'] else torch.zeros((0, 4), dtype=torch.float32), # Bbox coordinates
+            'labels': torch.as_tensor(transformed['label_ids'], dtype=torch.int64) if transformed['label_ids'] else torch.zeros((1, 1), dtype=torch.int64), # Corresponding class IDs
+            'label_names': transformed['label_names'] if transformed['label_names'] else torch.zeros((1, 1), dtype=torch.int64) # Corresponding class names
         }
 
         return transformed_image, target
