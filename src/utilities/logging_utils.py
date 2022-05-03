@@ -72,33 +72,35 @@ def get_timestamp(seconds):
     days, hrs = divmod(hours, 24)
     
     return f'{days:d}d {hrs:02d}h {mins:02d}m {secs:02d}s'
-    
-def save_model(fname, model, epoch, optimizer, lr_scheduler, run_history, best_loss):
+
+def save_model(fname, model_state_dict, epoch, optimizer_state_dict, lr_scheduler_state_dict, run_history, best_metrics, best_loss):
     """
     Saves the input model, optimizer, scheduler's state dicts. 
 
+    You should make sure to move the model to CPU before saving, for
+    compatibility with any system (GPU-able or not).
+
     Parameters:
-        fname (str)                             : filename (with path) to save. 
-        model (torch.nn.Module)                 : trained model.
-        epoch (int)                             : current training epoch (+1). 
-        optimizer (torch.optim)                 : optimizer.
-        lr_scheduler (torch.optim.lr_scheduler) : learning rate scheduler.
-        run_history (dict)                      : dict with the logged metrics, losses, etc.
-        best_loss (float)                       : best loss value so far.
+        fname (str)                     : filename (with path) to save. 
+        model_sate_dict (dict)          : trained model state_dict.
+        epoch (int)                     : current training epoch (+1). 
+        optimizer_state_dict (dict)     : optimizer state_dict.
+        lr_scheduler_state_dict (dict)  : learning rate scheduler state_dict.
+        run_history (dict)              : dict with the logged metrics, losses, etc.
+        best_metrics (dict)             : dict with the best mAPs.
+        best_loss (float)               : best loss value so far.
 
     Returns: 
         None
     """
-    # Make sure the device is on the CPU for compatibility-safe loading on any system
-    model.to('cpu')
-
     torch.save(
         {
             'epoch': int(epoch),
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'lr_scheduler_state_dict': lr_scheduler.state_dict(),
+            'model_state_dict': model_state_dict,
+            'optimizer_state_dict': optimizer_state_dict,
+            'lr_scheduler_state_dict': lr_scheduler_state_dict,
             'run_history': run_history,
+            'best_metrics': best_metrics,
             'best_loss': best_loss
         },
         fname # .pt extension
