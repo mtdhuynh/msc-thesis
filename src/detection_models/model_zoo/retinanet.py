@@ -4,7 +4,7 @@ from torchvision.models.detection import RetinaNet
 
 from detection_models import build_detection_backbone
 
-def retinanet(backbone='resnet50', pretrained=False, num_classes=6, device=torch.device('cpu'), other_kwargs={'trainable_layers': 5}):
+def retinanet(backbone='resnet50', pretrained=False, num_classes=7, device=torch.device('cpu'), other_kwargs={'trainable_layers': 5}):
     """
     Loads a RetinaNet model with the specified backbone. 
     
