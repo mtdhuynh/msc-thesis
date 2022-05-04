@@ -19,7 +19,7 @@ def get_metrics(device='cpu', logger=None, **params):
     """
     metrics = MeanAveragePrecision(**params).to(device)
 
-    if logger:
+    if not isinstance(logger, str):
         logger.info(f'Evaluating the model against mAP metric.')
 
     return metrics

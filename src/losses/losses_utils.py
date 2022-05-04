@@ -18,22 +18,23 @@ def get_loss_fn(logger=None, **params):
     Returns:
         loss_fn (torch.nn)
     """
-    model_type = params['name']
-    params = {k: v for k,v in params.items() if k!='name'}
-
-    try:
-        if model_type == 'yolo':
+    if not params:
+        # Torchvision models already compute losses internally, so no arguments are passed here
+        # and we return None
+        loss_fn = None
+    elif params['name'] == 'yolo':
+        try:
             # Extract the YOLO model
+            model_type = params['name']
             yolo_model = params['model']
-            params = {k: v for k,v in params.items() if k!='model'}
+            params = {k: v for k,v in params.items() if k not in ('name', 'model')}
 
             loss_fn = YOLOLoss(model=yolo_model, **params)
-        # more losses and model-support coming.
-    except Exception as e:
-        print(e)
-        logger.info(f'{model_type} loss not yet supported. Available losses: {SUPPORTED_LOSSES}')
+        except Exception as e:
+            print(e)
+            logger.info(f'{model_type} loss not yet supported. Available losses: {SUPPORTED_LOSSES}')
 
-    if logger:
-        logger.info(f'Using a {model_type} network-compatible loss function.')
+    if not isinstance(logger, str):
+        logger.info(f'Using {loss_fn} loss function.')
 
     return loss_fn

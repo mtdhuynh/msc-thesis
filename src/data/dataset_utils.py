@@ -59,7 +59,7 @@ def get_dataset(mode, fpath, transforms, bbox_format, cache=False, tb_writer=Non
     # Get datasplit path
     data_folder = os.path.join(fpath, mode)
 
-    if logger:
+    if not isinstance(logger, str):
         logger.info(f'Reading input data from: {data_folder}.')
 
     # Create torch.utils.data.Dataset object
@@ -69,7 +69,7 @@ def get_dataset(mode, fpath, transforms, bbox_format, cache=False, tb_writer=Non
     if tb_writer:
         log_tb_images(dataset, tb_writer)
 
-    if logger:
+    if not isinstance(logger, str):
         logger.info(f'Using {len(dataset)} {mode} images.')
 
     return dataset
@@ -151,7 +151,7 @@ def get_transforms(mode, params, normalize=True, logger=None):
             bbox_params=bbox_params
         )
 
-    if logger:
+    if not isinstance(logger, str):
         logger.info(f'For {mode} data, using the following transforms: {transforms}.')
 
     return transforms
