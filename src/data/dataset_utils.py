@@ -34,7 +34,7 @@ def get_dataloader(mode, dataset, params, logger=None):
         pin_memory=params['pin_memory']
     )
     
-    if logger:
+    if not isinstance(logger, str):
         logger.info(f'Using {mode} dataloader with batch_size={params["batch_size"]}, shuffle={shuffle}, num_workers={params["num_workers"]}, pin_memory={params["pin_memory"]}.')
 
     return dataloader
@@ -74,7 +74,7 @@ def get_dataset(mode, fpath, transforms, bbox_format, cache=False, tb_writer=Non
 
     return dataset
 
-def get_transforms(mode, params, normalize=True, logger=None):
+def get_transforms(mode, params, normalize=True, logger=''):
     """
     Load standard transforms based on data split.
     Base transform pipeline is: [Resize, Normalize, ToTensor].
