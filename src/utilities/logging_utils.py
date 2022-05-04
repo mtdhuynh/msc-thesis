@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 
+import psutil
 import torch
 
 def log_tb_images(dataset, tb_writer):
@@ -105,3 +106,25 @@ def save_model(fname, model_state_dict, epoch, optimizer_state_dict, lr_schedule
         },
         fname # .pt extension
     )
+
+def get_memory_info(used, total):
+    """
+    Returns input used and total memory (RAM, GPU, etc.) in human-readable format. 
+
+    Expects as input the used and total memory in bytes.
+
+    Parameters:
+        used (int)  : amount of used memory in bytes.
+        total (int) : total amount of memory in bytes.
+    
+    Returns:
+        (str)
+
+    Example:
+    >>> import psutil
+    >>> # Get RAM usage in bytes
+    >>> used, total = psutil.virtual_memory().used, psutil.virtual_memory().total
+    >>> # Print in human-readable format
+    >>> print(f"RAM Usage: {get_memory_info(used, total)}") # "<RAM used>GB / <RAM total>GB (<RAM used percentage>%)"
+    """    
+    return f"{psutil._common.bytes2human(used)}B / {psutil._common.bytes2human(total)}B ({round(used/total*100, 1)}%)"
