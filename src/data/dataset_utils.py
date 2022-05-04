@@ -34,7 +34,7 @@ def get_dataloader(mode, dataset, params, logger=None):
         pin_memory=params['pin_memory']
     )
     
-    if not isinstance(logger, str):
+    if not isinstance(logger, (str, type(None))):
         logger.info(f'Using {mode} dataloader with batch_size={params["batch_size"]}, shuffle={shuffle}, num_workers={params["num_workers"]}, pin_memory={params["pin_memory"]}.')
 
     return dataloader
@@ -59,7 +59,7 @@ def get_dataset(mode, fpath, transforms, bbox_format, cache=False, tb_writer=Non
     # Get datasplit path
     data_folder = os.path.join(fpath, mode)
 
-    if not isinstance(logger, str):
+    if not isinstance(logger, (str, type(None))):
         logger.info(f'Reading input data from: {data_folder}.')
 
     # Create torch.utils.data.Dataset object
@@ -69,12 +69,12 @@ def get_dataset(mode, fpath, transforms, bbox_format, cache=False, tb_writer=Non
     if tb_writer:
         log_tb_images(dataset, tb_writer)
 
-    if not isinstance(logger, str):
+    if not isinstance(logger, (str, type(None))):
         logger.info(f'Using {len(dataset)} {mode} images.')
 
     return dataset
 
-def get_transforms(mode, params, normalize=True, logger=''):
+def get_transforms(mode, params, normalize=True, logger=None):
     """
     Load standard transforms based on data split.
     Base transform pipeline is: [Resize, Normalize, ToTensor].
@@ -151,7 +151,7 @@ def get_transforms(mode, params, normalize=True, logger=''):
             bbox_params=bbox_params
         )
 
-    if not isinstance(logger, str):
+    if not isinstance(logger, (str, type(None))):
         logger.info(f'For {mode} data, using the following transforms: {transforms}.')
 
     return transforms

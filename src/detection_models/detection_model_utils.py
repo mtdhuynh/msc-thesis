@@ -60,7 +60,7 @@ def get_model(specs, device, logger=None):
     """
     model = ODModel(specs, device).model
 
-    if not isinstance(logger, str):
+    if not isinstance(logger, (str, type(None))):
         logger.info(f'Loaded {specs["arch"]} model with the following parameters: {", ".join([f"{k}={v}" for k,v in specs.items()])}.')
 
     return model

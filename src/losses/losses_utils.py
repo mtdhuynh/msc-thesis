@@ -34,7 +34,7 @@ def get_loss_fn(logger=None, **params):
             print(e)
             logger.info(f'{model_type} loss not yet supported. Available losses: {SUPPORTED_LOSSES}')
 
-    if not isinstance(logger, str):
+    if not isinstance(logger, (str, type(None))):
         logger.info(f'Using {loss_fn} loss function.')
 
     return loss_fn

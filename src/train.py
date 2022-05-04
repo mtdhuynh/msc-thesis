@@ -21,13 +21,13 @@ def main(config, device, tb_writer, logger=None):
     Launches the main training function.
     """
     # Start training
-    if not isinstance(logger, str):
+    if not isinstance(logger, (str, type(None))):
         logger.info('Training session started.')
 
     train(config, device, tb_writer, logger)
     
     # End training
-    if not isinstance(logger, str):
+    if not isinstance(logger, (str, type(None))):
         logger.info('Training session ended.')
     
     # When done with training, make sure all pending events 
@@ -100,12 +100,12 @@ if __name__ == '__main__':
     else:
         logger = get_logger(logdir)
 
-    if not isinstance(logger, str):
+    if not isinstance(logger, (str, type(None))):
         logger.info(f'Output folder: {logdir}')
 
     # Fix seed
     fix_seed(SEED)
-    if not isinstance(logger, str):
+    if not isinstance(logger, (str, type(None))):
         logger.info(f'Fixed random seeds for reproducibility: {SEED}.')
 
     main(config, args.device, tb_writer, logger)

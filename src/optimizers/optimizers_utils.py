@@ -19,7 +19,7 @@ def get_optimizer(model, logger=None, **params):
     
     optimizer = ODOptimizer(model, name, **params).optimizer
 
-    if not isinstance(logger, str):
+    if not isinstance(logger, (str, type(None))):
         logger.info(f'Using optimizer: {optimizer}.')
 
     return optimizer

@@ -16,10 +16,10 @@ def get_lr_scheduler(optimizer, logger=None, **params):
     if not params:
         lr_scheduler = Constant_LR(optimizer)
 
-        if not isinstance(logger, str):
+        if not isinstance(logger, (str, type(None))):
             logger.info(f'No learning rate scheduler specified. Using default constant learning rate: {lr_scheduler}')
     else: # Else, load a scheduler from torch.optim.lr_scheduler
-        if not isinstance(logger, str):
+        if not isinstance(logger, (str, type(None))):
             logger.info(f'Using the following learning rate scheduler: {", ".join([f"{k}: {v}" for k,v in params.items()])}.')
 
         name = params['name']
