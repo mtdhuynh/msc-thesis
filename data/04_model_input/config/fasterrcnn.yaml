@@ -1,0 +1,41 @@
+dataset:
+  fpath: '/home/thuynh/ms-thesis/data/04_model_input'
+  cache: False
+  format: 'pascal_voc'
+  transforms:
+    resize: 512
+    normalize: True
+    min_area: 900
+    min_visibility: 0.25
+model: 
+  arch: 'fasterrcnn'
+  pretrained: False
+  backbone: 'efficientnet_b2' # from torchvision.models
+  num_classes: 7
+  img_size: 512
+training:
+  num_epochs: 1000
+  early_stop: 30
+  batch_size: 40
+  num_workers: 8
+  pin_memory: True
+  optimizer:
+    name: 'Adam'
+    lr: 1.0e-3
+    weight_decay: 0.0005
+  loss: None
+  mAP:
+    box_format: 'xyxy'
+    class_metrics: True
+  lr_scheduler:
+    name: 'CyclicLR'
+    base_lr: 1.0e-8
+    max_lr: 1.0e-2
+    step_size_up: 3600
+    step_size_down: 8000
+    mode: 'triangular2'
+    cycle_momentum: False
+checkpoints:
+  save_checkpoints: True
+  resume_checkpoint: None
+
