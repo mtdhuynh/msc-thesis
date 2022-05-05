@@ -209,8 +209,8 @@ class ODDataset():
             'image_id': torch.tensor([idx], dtype=torch.int64) if idx is not None else img_fname, # image ID
             'image_name': img_fname, # always save image fname 
             'boxes': torch.as_tensor(transformed['bboxes'], dtype=torch.float32) if transformed['bboxes'] else torch.zeros((0, 4), dtype=torch.float32), # Bbox coordinates
-            'labels': torch.as_tensor(transformed['label_ids'], dtype=torch.int64) if transformed['label_ids'] else torch.zeros((0, 1), dtype=torch.int64), # Corresponding class IDs
-            'label_names': transformed['label_names'] if transformed['label_names'] else torch.zeros((0, 1), dtype=torch.int64) # Corresponding class names
+            'labels': torch.as_tensor(transformed['label_ids'], dtype=torch.int64) if transformed['label_ids'] else torch.zeros((0, ), dtype=torch.int64), # Corresponding class IDs
+            'label_names': transformed['label_names'] if transformed['label_names'] else torch.zeros((0, ), dtype=torch.int64) # Corresponding class names
         }
 
         return transformed_image, target
