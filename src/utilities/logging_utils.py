@@ -54,6 +54,35 @@ def get_logger(logdir):
 
     return logger
 
+def get_model_size(model):
+    """
+    Computes the model's size by calculating the number of parameters
+    and buffers, multiplied by element size.
+    Implementation from: https://discuss.pytorch.org/t/finding-model-size/130275/2
+
+    Returns the model's size in MB (as a float).
+
+    Parameters:
+        model (torch.nn.Module) : a pytorch model.
+
+    Returns:
+        model_size (float)
+    """
+    # Compute parameters' size
+    param_size = 0
+    for param in model.parameters():
+        param_size += param.nelement() * param.element_size()
+    
+    # Compute buffers' size
+    buffer_size = 0
+    for buffer in model.buffers():
+        buffer_size += buffer.nelement() * buffer.element_size()
+
+    # Convert to MB
+    model_size = (param_size + buffer_size) / 1024**2
+    
+    return model_size
+
 def get_timestamp(seconds):
     """
     Return string with time formatted in days, hours, minutes, seconds:
