@@ -44,17 +44,17 @@ def build_detection_backbone(backbone_name, pretrained=False,  **kwargs):
         # ResNet with FPN backbone outputs 5 feature maps ['0', '1', '2', '3', 'pool'] 
         # We thus define 5x3 anchor sizes and aspect ratios, one anchor size for each feature map
         anchor_sizes = tuple((x, int(x * 2 ** (1.0 / 3)), int(x * 2 ** (2.0 / 3))) for x in [32, 64, 128, 256, 512]) 
-        aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
+        aspect_ratios = ((0.7, 0.85, 1.0, 1.5),) * len(anchor_sizes)
     elif backbone_name.startswith('mobilenet'):
         # Load MobileNet backbone
         backbone = torchvision.models.detection.backbone_utils.mobilenet_backbone(backbone_name, pretrained=pretrained, **kwargs) # fpn=True/False, trainable_layers=n, etc.
 
         if kwargs['fpn']: # default from fasterRCNN
             anchor_sizes = ((32, 64, 128, 256, 512, ), ) * 3
-            aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
+            aspect_ratios = ((0.7, 0.85, 1.0, 1.5),) * len(anchor_sizes)
         else: # no FPN means only one feature map as output from the backbone
             anchor_sizes = ((32, 64, 128, 256, 512, ), )
-            aspect_ratios = ((0.5, 1.0, 2.0), )        
+            aspect_ratios = ((0.7, 0.85, 1.0, 1.5), )        
     else:
         # Load another backbone with "features" attribute
         try:
@@ -68,7 +68,7 @@ def build_detection_backbone(backbone_name, pretrained=False,  **kwargs):
             # Generally speaking, off-the-shelf backbones return a single feature map / tensor, 
             # therefore we only need one anchor_size
             anchor_sizes = ((32, 64, 128, 256, 512, ), )
-            aspect_ratios = ((0.5, 1.0, 2.0), )
+            aspect_ratios = ((0.7, 0.85, 1.0, 1.5), )
         except Exception as e:
             raise Exception(f'Encountered unknown error: {e}. The selected backbone should have ".features" and ".features[-1].out_channels" attributes. Check the source code for these. If your selected backbone is not available, you can try one of the default backbones: ["resnet<[18,50,101,152]>", "mobilenet_v<[2,3_small,3_large]>"].')
     
