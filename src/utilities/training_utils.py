@@ -69,7 +69,7 @@ def prepare_training(config, _device, tb_writer, logger):
          # We have our own augmentation pipeline, and by supplying our own resize size, we prevent a further resizing.
          # YOLO models do not have this internal transform.
         config['model']['img_size'] = config['dataset']['transforms']['resize']
-    model = get_model(specs=config['model'], device=device, logger=logger)
+    model = get_model(params=config['model'], device=device, logger=logger)
 
     ##### OPTIMIZER #####
     optimizer = get_optimizer(model=model, logger=logger, **config['training']['optimizer'])
@@ -177,7 +177,7 @@ def train(config, device, tb_writer, logger):
     if resume_checkpoint is None: # from scratch
         start_epoch = 0
         run_history = defaultdict(list)
-        best_loss = torch.tensor([[float('inf')], [float('inf')], [float('inf')]], dtype=torch.float32).to(device) # [[global loss], [class loss], [reg loss]]
+        best_loss = defaultdict(lambda: torch.tensor(float('inf'), dtype=torch.float32).to(device)) # initialize new keys to tensor(inf, device=device)
         if not isinstance(logger, (str, type(None))):
             logger.info('Training model from scratch.')
     else:
@@ -234,7 +234,7 @@ def train(config, device, tb_writer, logger):
                 best_epoch = False
                 
                 # Reset loss
-                epoch_loss = torch.zeros((3,1), dtype=torch.float32).to(device)
+                epoch_loss = defaultdict(lambda: torch.tensor(0., dtype=torch.float32).to(device)) # each new key will have a value = torch.tensor(0.)
                 
                 # Use training mode also in val, as we want to compute the val loss too
                 model.train()
@@ -249,12 +249,6 @@ def train(config, device, tb_writer, logger):
 
                     inputs = inputs.to(device, non_blocking=True)
                     targets = [{k: v.to(device, non_blocking=True) for k,v in target.items() if k not in ('label_names', 'image_name')} for target in targets]
-
-                    # if not isinstance(logger, (str, type(None))):
-                    #     logger.info(f'Memory Summary: {torch.cuda.memory_summary()}')
-                    #     logger.info(f'MemGetInfo: {torch.cuda.mem_get_info()}')
-                    #     logger.info(f'Memory Currently Allocated: {torch.cuda.memory_allocated()} | Max Allocated Memory: {torch.cuda.max_memory_allocated()}')
-                    #     logger.info(f'Memory Currently Reserved: {torch.cuda.memory_reserved()} | Max Reserved Memory: {torch.cuda.max_memory_reserved()}')
 
                     # Enable gradient computation only for training phase
                     with torch.set_grad_enabled(phase=='train'):
@@ -293,38 +287,38 @@ def train(config, device, tb_writer, logger):
                                 lr_scheduler.step()
                         
                     # Accumulate loss per-batch and de-average by multiplying by bs: https://discuss.pytorch.org/t/confused-about-set-grad-enabled/38417/4
-                    epoch_loss[0] += (losses.item() * inputs.size(0))
-                    epoch_loss[1] += (loss_dict['classification'] * inputs.size(0))
-                    epoch_loss[2] += (loss_dict['bbox_regression'] * inputs.size(0))
+                    epoch_loss['loss'] += (losses.item() * inputs.size(0))
+                    for loss_name, loss_value in loss_dict.items():
+                        epoch_loss[loss_name] += (loss_value.item() * inputs.size(0))
 
                     # Update pbar
                     ram_usage = psutil.virtual_memory()
-                    pbar.set_description(f'[{phase}] Epoch: {epoch+1}/{epochs} | Batch: {i+1}/{len(dataloaders[phase])} | Average Batch Global Loss: {losses.item()} | Class Loss: {loss_dict["classification"]} | Bbox Loss: {loss_dict["bbox_regression"]} | RAM Usage: {get_memory_info(ram_usage.used, ram_usage.total)} | GPU Usage: Allocated: {get_memory_info(torch.cuda.memory_allocated(device), torch.cuda.max_memory_allocated(device))}, Reserved: {get_memory_info(torch.cuda.memory_reserved(device), torch.cuda.max_memory_reserved(device))} (Total: {psutil._common.bytes2human(torch.cuda.get_device_properties(device).total_memory)}B)')
+                    if torch.cuda.is_available():
+                        cuda_info = f'| GPU Usage: Allocated: {get_memory_info(torch.cuda.memory_allocated(device), torch.cuda.max_memory_allocated(device))}, Reserved: {get_memory_info(torch.cuda.memory_reserved(device), torch.cuda.max_memory_reserved(device))} (Total: {psutil._common.bytes2human(torch.cuda.get_device_properties(device).total_memory)}B)'
+                    else:
+                        cuda_info = ''
+                    pbar.set_description(f'[{phase}] Epoch: {epoch+1}/{epochs} | Batch: {i+1}/{len(dataloaders[phase])} | Averaged Global Loss: {losses.item()} | {" | ".join([f"{k}: {v.item()}" for k,v in loss_dict.items()])} | RAM Usage: {get_memory_info(ram_usage.used, ram_usage.total)} {cuda_info}')
                     
-                    # if not isinstance(logger, (str, type(None))): # per batch
-                    #     logger.info(f'[{phase}] Epoch: {epoch+1}/{epochs} | Batch: {i+1}/{len(dataloaders[phase])} | Average Batch Loss: {losses.item()} | Class Loss: {loss_dict["classification"]} | Bbox Loss: {loss_dict["bbox_regression"]}')
-
                 # Averaged loss over the epoch
-                epoch_loss = epoch_loss / len(datasets[phase])
+                epoch_loss = {k: torch.div(v, len(datasets[phase])) for k,v in epoch_loss.items()}
                 
                 # Log training epoch results
                 epoch_time = get_timestamp(time.time()-tic)[3:]
                 
                 if not isinstance(logger, (str, type(None))): # per epoch
-                    logger.info(f'[{phase}] Epoch #{epoch+1} | Loss: {epoch_loss[0].item()} | Class Loss: {epoch_loss[1].item()} | Bbox Loss {epoch_loss[2].item()} | Time Elapsed: {epoch_time}')
+                    logger.info(f'[{phase}] Epoch #{epoch+1} | LR: {lr_scheduler.get_last_lr()[0]} | {" | ".join([f"{k}: {v.item()}" for k,v in epoch_loss.items()])} | Time Elapsed: {epoch_time}')
 
-                tb_writer.add_scalar(f'epoch_loss/{phase}', epoch_loss[0].item(), epoch+1)
-                tb_writer.add_scalar(f'class_loss/{phase}', epoch_loss[1].item(), epoch+1)
-                tb_writer.add_scalar(f'bbox_loss/{phase}', epoch_loss[2].item(), epoch+1)
-                run_history[f'epoch_loss/{phase}'].append(epoch_loss[0].item())
-                run_history[f'class_loss/{phase}'].append(epoch_loss[1].item())
-                run_history[f'bbox_loss/{phase}'].append(epoch_loss[2].item())
+                for k,v in epoch_loss.items():
+                    tb_writer.add_scalar(f'{k}/{phase}', v.item(), epoch+1)
+                    run_history[f'{k}/{phase}'].append(v.item())
 
                 # Best model tracking
                 if phase == 'val':
-                    if epoch_loss[0] < best_loss[0]:
+                    if epoch_loss['loss'] < best_loss['loss']:
                         best_loss = copy.deepcopy(epoch_loss)
                         best_epoch = True
+                        if not isinstance(logger, (str, type(None))):
+                            logger.info('New best model!')
                     else:
                         patience += 1
                         # Early checkout
@@ -351,7 +345,7 @@ def train(config, device, tb_writer, logger):
                                 logger.info(f'{patience} epochs without improvements. Continuing training...')
                     
                     # Checkpointing every 50 epochs
-                    if save_checkpoints and (epoch+1) % 50 == 0:
+                    if save_checkpoints and (epoch+1) % 20 == 0:
                         if not isinstance(logger, (str, type(None))):
                             logger.info(f'Saving checkpoint @ epoch {epoch+1}...')
                         save_model(
@@ -387,7 +381,7 @@ def train(config, device, tb_writer, logger):
             pbar = tqdm.tqdm(enumerate(dataloaders[phase]), dynamic_ncols=True, file=sys.stdout)
 
             for i, (inputs, targets) in pbar:
-                pbar.set_description(f'[{phase}] Epoch: {epoch+1}/{epochs} | Batch: {i+1}/{len(dataloaders[phase])} | Computing mAP metrics in inference mode...')
+                pbar.set_description(f'[{phase}] Epoch: {epoch+1}/{epochs} | Batch: {i+1}/{len(dataloaders[phase])} | Computing mAP metrics for {phase} data...')
 
                 inputs = inputs.to(device, non_blocking=True)
                 targets = [{k: v.to(device, non_blocking=True) for k,v in target.items() if k not in ('label_names', 'image_name')} for target in targets]
@@ -412,7 +406,11 @@ def train(config, device, tb_writer, logger):
             
             for metric in epoch_map.keys():
                 for k, v in epoch_map[metric].items():
-                    tb_writer.add_scalar(f'{k}', v, epoch+1)
+                    if len(v.shape)==0: # only 0D tensors can be converted to scalars
+                        tb_writer.add_scalar(f'{k}', v.item(), epoch+1)
+                    else:
+                        for idx, val in enumerate(v): # array-like tensor
+                            tb_writer.add_scalar(f'{k}_{idx+1}', val.item(), epoch+1)
                     run_history[k].append(v)
 
             # Track best model and metrics
@@ -423,8 +421,18 @@ def train(config, device, tb_writer, logger):
                 best_run_history = copy.deepcopy(run_history)
                 best_map = copy.deepcopy(epoch_map)
                 patience = 0
-                if not isinstance(logger, (str, type(None))):
-                    logger.info('New best model!')
+                
+                # Save best model
+                save_model(
+                    os.path.join(logdir, 'models', f'best_model.pt'),
+                    best_model,
+                    epoch+1,
+                    best_optimizer,
+                    best_lr_scheduler,
+                    best_run_history,
+                    best_map,
+                    best_loss
+                )
             # ---- End of epoch ----
 
         ###### END OF TRAIN/VAL ######
