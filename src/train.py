@@ -16,7 +16,7 @@ from utilities.training_utils import train
 
 SEED = 3407
 
-def main(config, device, tb_writer, logger=None):
+def main(config, device, scaler, tb_writer, logger=None):
     """
     Launches the main training function.
     """
@@ -24,7 +24,7 @@ def main(config, device, tb_writer, logger=None):
     if not isinstance(logger, (str, type(None))):
         logger.info('Training session started.')
 
-    train(config, device, tb_writer, logger)
+    train(config, device, scaler, tb_writer, logger)
     
     # End training
     if not isinstance(logger, (str, type(None))):
@@ -40,6 +40,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='setup')
     parser.add_argument("--config", type=str, default='/home/thuynh/ms-thesis/data/04_model_input/config/yolov3.yaml', help='Configuration setup file to use for model training.')
     parser.add_argument("--device", type=str, default='cuda' if torch.cuda.is_available() else 'cpu', help='Device (CUDA if available) to use for model training.')
+    parser.add_argument("--no-amp", action='store_true', help='Disable automatic mixed precision (AMP) training mode.')
     parser.add_argument("--run-tensorboard", action='store_true', help='Open tensorboard in a browser window at the end of training.')
     parser.add_argument("--no-verbose", action='store_true', help='Do not save logs output.')
 
@@ -108,7 +109,15 @@ if __name__ == '__main__':
     if not isinstance(logger, (str, type(None))):
         logger.info(f'Fixed random seeds for reproducibility: {SEED}.')
 
-    main(config, args.device, tb_writer, logger)
+    # Automatic Mixed Precision training
+    if args.no_amp or args.device=='cpu': # disable AMP for CPU jobs
+        use_amp = False
+    else: # use AMP
+        use_amp = True
+
+    scaler = torch.cuda.amp.GradScaler(enabled=use_amp) # "enabled" argument allows switching between default and mixed precision without if-else
+
+    main(config, args.device, scaler, tb_writer, logger)
 
     # [Optional] Run tensorboard after training is done
     # This will open a browser window

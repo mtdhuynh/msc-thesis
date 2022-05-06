@@ -74,7 +74,7 @@ def get_timestamp(seconds):
     
     return f'{days:d}d {hrs:02d}h {mins:02d}m {secs:02d}s'
 
-def save_model(fname, model_state_dict, epoch, optimizer_state_dict, lr_scheduler_state_dict, run_history, best_metrics, best_loss):
+def save_model(fname, model_state_dict, epoch, optimizer_state_dict, scaler_state_dict, lr_scheduler_state_dict, run_history, best_metrics, best_loss):
     """
     Saves the input model, optimizer, scheduler's state dicts. 
 
@@ -86,6 +86,7 @@ def save_model(fname, model_state_dict, epoch, optimizer_state_dict, lr_schedule
         model_sate_dict (dict)          : trained model state_dict.
         epoch (int)                     : current training epoch (+1). 
         optimizer_state_dict (dict)     : optimizer state_dict.
+        scaler_state_dict (dict)        : amp.GradScaler state_dict (if any).
         lr_scheduler_state_dict (dict)  : learning rate scheduler state_dict.
         run_history (dict)              : dict with the logged metrics, losses, etc.
         best_metrics (dict)             : dict with the best mAPs.
@@ -99,6 +100,7 @@ def save_model(fname, model_state_dict, epoch, optimizer_state_dict, lr_schedule
             'epoch': int(epoch),
             'model_state_dict': model_state_dict,
             'optimizer_state_dict': optimizer_state_dict,
+            'scaler_state_dict': scaler_state_dict,
             'lr_scheduler_state_dict': lr_scheduler_state_dict,
             'run_history': run_history,
             'best_metrics': best_metrics,

@@ -124,7 +124,7 @@ def prepare_training(config, _device, tb_writer, logger):
 
     return training_dict
 
-def train(config, device, tb_writer, logger):
+def train(config, device, scaler, tb_writer, logger):
     """"
     Main training function. The function takes as input the configuration
     file, the selected device (if available), the tensorboard writer and 
@@ -140,10 +140,11 @@ def train(config, device, tb_writer, logger):
     the corresponding logging dir.
 
     Parameters:
-        config (dict)               : config specs read from a yaml file.
-        device (str)                : selected device to run training on. Either 'cpu' or 'cuda:<N>'.
-        tb_writer (SummaryWriter)   : tensorboard writer.
-        logger (logging.logger)     : python logger object.
+        config (dict)                       : config specs read from a yaml file.
+        device (str)                        : selected device to run training on. Either 'cpu' or 'cuda:<N>'.
+        scaler (torch.cuda.amp.GradScaler)  : gradient scaler for AMP mode, if enabled. If disabled, or training on CPU, scaler is a no-ops.
+        tb_writer (SummaryWriter)           : tensorboard writer.
+        logger (logging.logger)             : python logger object.
     """
     # Logging folder
     if not isinstance(logger, (str, type(None))):
@@ -189,12 +190,14 @@ def train(config, device, tb_writer, logger):
             model.to(device)
             # Load optimizer and scheduler states
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            if scaler._enabled:
+                scaler.load_state_dict(checkpoint['scaler_state_dict'])
             lr_scheduler.load_state_dict(checkpoint['lr_scheduler_state_dict'])
             # Load other utils
             start_epoch = checkpoint['epoch']
             run_history = checkpoint['run_history']
             best_map = checkpoint['best_map']
-            best_loss = checkpoint['best_loss'].to(device)
+            best_loss = checkpoint['best_loss']
             if not isinstance(logger, (str, type(None))):
                 logger.info(f'Resuming training from the following checkpoint: {checkpoint}.')
         except Exception as e:
@@ -209,6 +212,7 @@ def train(config, device, tb_writer, logger):
     # Copy state_dict to CPU to avoid GPU consumption
     best_model = OrderedDict({k: v.to('cpu') for k, v in model.state_dict().items()})    
     best_optimizer = copy.deepcopy(optimizer.state_dict())
+    best_scaler = copy.deepcopy(scaler.state_dict())
     best_lr_scheduler = copy.deepcopy(lr_scheduler.state_dict())
     patience = 0
 
@@ -251,7 +255,7 @@ def train(config, device, tb_writer, logger):
                     targets = [{k: v.to(device, non_blocking=True) for k,v in target.items() if k not in ('label_names', 'image_name')} for target in targets]
 
                     # Enable gradient computation only for training phase
-                    with torch.set_grad_enabled(phase=='train'):
+                    with (torch.set_grad_enabled(phase=='train'), torch.cuda.amp.autocast(enabled=scaler._enabled)):
                         # Torchvision models loss
                         if loss_fn is None:
                             # Output from torchvision models is a dict of classification and regression losses
@@ -278,8 +282,11 @@ def train(config, device, tb_writer, logger):
 
                         # Backward pass in train mode only
                         if phase == 'train':
-                            losses.backward()
-                            optimizer.step()
+                            # if scaler is DISABLED, this is equivalent to: losses.backward() and optimizer.step()
+                            scaler.scale(losses).backward()
+                            scaler.step(optimizer)
+                            scaler.update() # update at each batch
+
                             # Update LR at each batch (only for ['CyclicLR', 'CosineAnnealingLR', 'OneCycleLR', 'CosineAnnealingWarmRestarts']). Other LRs are updated at each epoch
                             if str(lr_scheduler.__class__.__name__) in ('CyclicLR', 'CosineAnnealingLR', 'OneCycleLR', 'CosineAnnealingWarmRestarts'):
                                 tb_writer.add_scalar('LR Scheduler', lr_scheduler.get_last_lr()[0], len(dataloaders[phase])*epoch + i+1)
@@ -297,7 +304,7 @@ def train(config, device, tb_writer, logger):
                         cuda_info = f'| GPU Usage: Allocated: {get_memory_info(torch.cuda.memory_allocated(device), torch.cuda.max_memory_allocated(device))}, Reserved: {get_memory_info(torch.cuda.memory_reserved(device), torch.cuda.max_memory_reserved(device))} (Total: {psutil._common.bytes2human(torch.cuda.get_device_properties(device).total_memory)}B)'
                     else:
                         cuda_info = ''
-                    pbar.set_description(f'[{phase}] Epoch: {epoch+1}/{epochs} | Batch: {i+1}/{len(dataloaders[phase])} | Averaged Global Loss: {losses.item()} | {" | ".join([f"{k}: {v.item()}" for k,v in loss_dict.items()])} | RAM Usage: {get_memory_info(ram_usage.used, ram_usage.total)} {cuda_info}')
+                    pbar.set_description(f'[{phase}] Epoch: {epoch+1}/{epochs} | Batch: {i+1}/{len(dataloaders[phase])} | RAM Usage: {get_memory_info(ram_usage.used, ram_usage.total)} {cuda_info}')
                     
                 # Averaged loss over the epoch
                 epoch_loss = {k: torch.div(v, len(datasets[phase])) for k,v in epoch_loss.items()}
@@ -334,6 +341,7 @@ def train(config, device, tb_writer, logger):
                                 best_model,
                                 epoch+1,
                                 best_optimizer,
+                                best_scaler,
                                 best_lr_scheduler,
                                 best_run_history,
                                 best_map,
@@ -353,6 +361,7 @@ def train(config, device, tb_writer, logger):
                                 model.state_dict(), # model @ epoch
                                 epoch+1,
                                 optimizer.state_dict(), # optim @ epoch
+                                scaler.state_dict(), # scaler @ epoch
                                 lr_scheduler.state_dict(), # lr_sched @ epoch
                                 run_history,
                                 epoch_map,
@@ -387,7 +396,7 @@ def train(config, device, tb_writer, logger):
                 targets = [{k: v.to(device, non_blocking=True) for k,v in target.items() if k not in ('label_names', 'image_name')} for target in targets]
 
                 # Inference
-                with torch.set_grad_enabled(phase=='train'):
+                with (torch.set_grad_enabled(phase=='train'), torch.cuda.amp.autocast(enabled=scaler._enabled)):
                     outputs = model(inputs)
 
                 # Accumulate mAP metrics per batch
@@ -417,6 +426,7 @@ def train(config, device, tb_writer, logger):
             if best_epoch:
                 best_model = OrderedDict({k: v.to('cpu') for k, v in model.state_dict().items()}) # best model || move to CPU to avoid GPU overhead
                 best_optimizer = copy.deepcopy(optimizer.state_dict())
+                best_scaler = copy.deepcopy(scaler.state_dict())
                 best_lr_scheduler = copy.deepcopy(lr_scheduler.state_dict())
                 best_run_history = copy.deepcopy(run_history)
                 best_map = copy.deepcopy(epoch_map)
@@ -428,6 +438,7 @@ def train(config, device, tb_writer, logger):
                     best_model,
                     epoch+1,
                     best_optimizer,
+                    best_scaler,
                     best_lr_scheduler,
                     best_run_history,
                     best_map,
@@ -448,6 +459,7 @@ def train(config, device, tb_writer, logger):
             best_model,
             epochs,
             best_optimizer,
+            best_scaler,
             best_lr_scheduler,
             best_run_history,
             best_map,
@@ -479,6 +491,7 @@ def train(config, device, tb_writer, logger):
             best_model,
             epoch+1,
             best_optimizer,
+            best_scaler,
             best_lr_scheduler,
             best_run_history,
             best_map,
