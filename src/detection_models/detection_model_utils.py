@@ -46,6 +46,7 @@ def build_detection_backbone(backbone_name, pretrained=False,  **kwargs):
         anchor_sizes = tuple((x, int(x * 2 ** (1.0 / 3)), int(x * 2 ** (2.0 / 3))) for x in [32, 64, 128, 256, 512]) 
         aspect_ratios = ((0.7, 0.85, 1.0, 1.5),) * len(anchor_sizes)
     elif backbone_name.startswith('mobilenet'):
+        kwargs['fpn'] = kwargs.get('fpn', True)
         # Load MobileNet backbone
         backbone = torchvision.models.detection.backbone_utils.mobilenet_backbone(backbone_name, pretrained=pretrained, **kwargs) # fpn=True/False, trainable_layers=n, etc.
 
