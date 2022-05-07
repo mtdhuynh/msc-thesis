@@ -256,6 +256,7 @@ def train(config, device, scaler, tb_writer, logger):
 
                     # Enable gradient computation only for training phase
                     with torch.set_grad_enabled(phase=='train'):
+                        # Only forward pass under autocast! https://pytorch.org/docs/stable/notes/amp_examples.html#typical-mixed-precision-training
                         with torch.cuda.amp.autocast(enabled=scaler._enabled):
                         # Torchvision models loss
                             if loss_fn is None:
@@ -305,7 +306,7 @@ def train(config, device, scaler, tb_writer, logger):
                         cuda_info = f'| GPU Usage: Allocated: {get_memory_info(torch.cuda.memory_allocated(device), torch.cuda.max_memory_allocated(device))}, Reserved: {get_memory_info(torch.cuda.memory_reserved(device), torch.cuda.max_memory_reserved(device))} (Total: {psutil._common.bytes2human(torch.cuda.get_device_properties(device).total_memory)}B)'
                     else:
                         cuda_info = ''
-                    pbar.set_description(f'[{phase}] Epoch: {epoch+1}/{epochs} | Batch: {i+1}/{len(dataloaders[phase])} | RAM Usage: {get_memory_info(ram_usage.used, ram_usage.total)} {cuda_info}')
+                    pbar.set_description(f'[{phase}] Epoch: {epoch+1}/{epochs} | Batch: {i+1}/{len(dataloaders[phase])} | LR: {lr_scheduler.get_last_lr()[0]} | Batch Loss: {losses} | {" | ".join([f"{k}: {v}" for k,v in loss_dict.items()])} | RAM Usage: {get_memory_info(ram_usage.used, ram_usage.total)} {cuda_info}')
                     
                 # Averaged loss over the epoch
                 epoch_loss = {k: torch.div(v, len(datasets[phase])) for k,v in epoch_loss.items()}
@@ -314,11 +315,11 @@ def train(config, device, scaler, tb_writer, logger):
                 epoch_time = get_timestamp(time.time()-tic)[3:]
                 
                 if not isinstance(logger, (str, type(None))): # per epoch
-                    logger.info(f'[{phase}] Epoch #{epoch+1} | LR: {lr_scheduler.get_last_lr()[0]} | {" | ".join([f"{k}: {v.item()}" for k,v in epoch_loss.items()])} | Time Elapsed: {epoch_time}')
+                    logger.info(f'[{phase}] Epoch #{epoch+1} | LR: {lr_scheduler.get_last_lr()[0]} | {" | ".join([f"{k}: {v}" for k,v in epoch_loss.items()])} | Time Elapsed: {epoch_time}')
 
                 for k,v in epoch_loss.items():
-                    tb_writer.add_scalar(f'{k}/{phase}', v.item(), epoch+1)
-                    run_history[f'{k}/{phase}'].append(v.item())
+                    tb_writer.add_scalar(f'{k}/{phase}', v, epoch+1)
+                    run_history[f'{k}/{phase}'].append(v)
 
                 # Best model tracking
                 if phase == 'val':
