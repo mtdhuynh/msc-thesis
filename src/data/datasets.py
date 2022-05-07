@@ -62,10 +62,9 @@ class ODDataset():
         self.cache = cache
         
         if self.cache:            
-            print('Caching data...')
             self.cached_data = []
             
-            for idx, (img_fname, label_fname) in tqdm.tqdm(enumerate(zip(self.images_list, self.labels_list), total=len(self.images_list))):
+            for idx, (img_fname, label_fname) in tqdm.tqdm(enumerate(zip(self.images_list, self.labels_list)), total=len(self.images_list), desc='Caching data...'):
                 image, label = self.read_and_transform(img_fname, label_fname, self.transforms, idx)
                     
                 # Append to cache list as tuple

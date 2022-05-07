@@ -108,8 +108,8 @@ The repository has been structured as follows:
 |   |   └───runs
 │   └───07_reporting
 │
-├───docs
 ├───images
+├───logs
 ├───notebooks
 ├───src
 │   ├───data
@@ -120,7 +120,7 @@ The repository has been structured as follows:
 │   ├───metrics
 │   ├───optimizers
 │   ├───utilities
-|   ├───main.py
+|   ├───train.py
 |   └───requirements.yaml
 |
 ├───slurm.sh
@@ -131,8 +131,8 @@ The repository has been structured as follows:
 |:---------------------|:----------------|:---------|
 | `data` | Contains all the data, models, and model outputs needed and produced by the project. It follows a tree structure as defined in [this data engineering convention](https://towardsdatascience.com/the-importance-of-layered-thinking-in-data-engineering-a09f685edc71) to help building reproducible Data Science/Machine Learning pipelines. | `raw data`, `models`, `outputs` |
 | `images` | Contains images, plots, icons, logos, etc. used in the repository's documentation (`README.md`, presentations, reports, etc.). | `documentation`, `images`, `icons`, `plots`, `logos` |
+| `logs` | Contains the logs from the SLURM jobs output, named after the job ID. | `logs`, `SLURM`, `training` |
 | `notebooks` | Contains `Jupyter` notebooks used for exploration, experiments, tests, etc. | `jupyter`, `experiments`, `tests` |
-| `docs` | Contains documentation, slide decks, and reports regarding the project. | `documentation`, `reports` |
 | `src` | Contains all the source code and scripts used in the project. | `python`, `pytorch`, `conda`, `code` |
 
 This is only a high-level overview of the repository's structure at a glance. The interested reader should go ahead and inspect each single folder and file.
@@ -180,6 +180,8 @@ In [`data/04_model_input/config`](./data/04_model_input/config/) you can find a 
 
 If you wish to define your own configuration file, please do follow the structure of those `yaml` files.
 
+The configurable training options are mainly the `kwargs` from `torch`/`torchvision` classes, modules, functions, etc. (e.g., `kwargs` for dataloaders, models, optimizers, learning rate schedulers, losses, etc.).
+
 ### 2. Run `train.py`
 
 Make sure you are in the `ms-thesis` project folder, and that the corresponding `conda` environment is active. Then, run:
@@ -199,7 +201,20 @@ For example, to train with a custom configuration file, on the first `GPU` avail
 python src/train.py --config <path/to/custom/config_file.yaml> --device cuda:0 --run-tensorboard --no-verbose
 ```
 
-Every other training hyperparameter should be edited in the config `yaml` file. 
+Every other training hyperparameter should be edited in the config `yaml` file as explained above. 
+
+#### Using SLURM
+
+If your computational resources reside on a separate cluster managed by a [SLURM scheduling system](https://www.schedmd.com/), have a look at the [slurm.sh](slurm.sh) execution script. 
+
+Make sure to edit the [`SBATCH`](https://slurm.schedmd.com/sbatch.html) options and requested resources to suit your specific system and needs (e.g., `--gres`/`--mem` options, `-o` output log path, `-p` partition name, etc.).
+
+Then, you can run:
+```
+sbatch slurm.sh
+```
+
+For more information on SLURM and available commands, have a look at the [official documentation](https://slurm.schedmd.com/documentation.html). 
 
 ### 3. Inspect results
 

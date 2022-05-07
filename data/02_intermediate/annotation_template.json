@@ -7,8 +7,21 @@
 	"category_id": 0,
 	"category_name": "",
 	"segmentation": [],
-	"bbox": []
+	"xyxy": [],
+	"xywh": [],
+	"bbox_width": 0,
+	"bbox_height": 0,
+	"bbox_ratio": 0.0,
+	"bbox_area": 0
 	}
 ],
-"other": []
+"other": [
+	{
+	"LabelID": 0,
+	"CaseID": 0,
+	"Polyp Shape": "",
+	"Polyp Size": "",
+	"Polyp Location": ""
+	}
+]
 }
