@@ -112,8 +112,12 @@ if __name__ == '__main__':
     # Automatic Mixed Precision training
     if args.no_amp or args.device=='cpu': # disable AMP for CPU jobs
         use_amp = False
+        if logger:
+            logger.info('AMP training mode is disabled.')
     else: # use AMP
         use_amp = True
+        if logger:
+            logger.info('AMP training mode is enabled.')
 
     scaler = torch.cuda.amp.GradScaler(enabled=use_amp) # "enabled" argument allows switching between default and mixed precision without if-else
 

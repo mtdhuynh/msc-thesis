@@ -255,30 +255,31 @@ def train(config, device, scaler, tb_writer, logger):
                     targets = [{k: v.to(device, non_blocking=True) for k,v in target.items() if k not in ('label_names', 'image_name')} for target in targets]
 
                     # Enable gradient computation only for training phase
-                    with (torch.set_grad_enabled(phase=='train'), torch.cuda.amp.autocast(enabled=scaler._enabled)):
+                    with torch.set_grad_enabled(phase=='train'):
+                        with torch.cuda.amp.autocast(enabled=scaler._enabled):
                         # Torchvision models loss
-                        if loss_fn is None:
-                            # Output from torchvision models is a dict of classification and regression losses
-                            loss_dict = model(inputs, targets)
-                            losses = sum(loss for loss in loss_dict.values())
-                        # ################################################################## YOLO TBD #########################################################
-                        # # YOLOLoss
-                        # else: # bbox_format=='yolo':
-                        #     # Transform labels to a tensor of shape [N, 6], with [image_idx, class_id, [bbox_coords]] content
-                        #     # TO DO: move it inside the dataset __getitem__ method
-                        #     num_labels = len(targets['boxes']) # how many bbox for each image
-                        #     labels_yolo = torch.zeros(num_labels,6)
-                        #     if num_labels:
-                        #         labels_yolo[:, 1:2] = targets['labels']
-                        #         labels_yolo[:, 2:] = targets['boxes']
-                            
-                        #     labels_yolo.to(device, non_blocking=True)
+                            if loss_fn is None:
+                                # Output from torchvision models is a dict of classification and regression losses
+                                loss_dict = model(inputs, targets)
+                                losses = sum(loss for loss in loss_dict.values())
+                            # ################################################################## YOLO TBD #########################################################
+                            # # YOLOLoss
+                            # else: # bbox_format=='yolo':
+                            #     # Transform labels to a tensor of shape [N, 6], with [image_idx, class_id, [bbox_coords]] content
+                            #     # TO DO: move it inside the dataset __getitem__ method
+                            #     num_labels = len(targets['boxes']) # how many bbox for each image
+                            #     labels_yolo = torch.zeros(num_labels,6)
+                            #     if num_labels:
+                            #         labels_yolo[:, 1:2] = targets['labels']
+                            #         labels_yolo[:, 2:] = targets['boxes']
+                                
+                            #     labels_yolo.to(device, non_blocking=True)
 
-                        #     # YOLO forward pass
-                        #     outputs = model(inputs)
-                        #     # Compute YOLOLoss
-                        #     losses, loss_dict = loss_fn(outputs, labels_yolo) # loss already multiplied per batch size
-                        ########################################################################################################################################
+                            #     # YOLO forward pass
+                            #     outputs = model(inputs)
+                            #     # Compute YOLOLoss
+                            #     losses, loss_dict = loss_fn(outputs, labels_yolo) # loss already multiplied per batch size
+                            ########################################################################################################################################
 
                         # Backward pass in train mode only
                         if phase == 'train':
