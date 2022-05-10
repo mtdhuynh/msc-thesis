@@ -169,6 +169,43 @@ Particularly, it will:
 * Save/move **all** images and corresponding custom annotations to [`data/03_primary/images`](./data/03_primary/images/) and [`data/03_primary/labels`](./data/03_primary/labels/), respectively. A single [`labels.json`](./data/03_primary/labels.json) file containing all the annotations will be created too. 
 * Split the dataset into `training` and `validation` split, on a per-class basis (i.e., both `train` and `val` split will contain the same proportion of class instances), and save the data splits in [`data/04_model_input/train`](./data/04_model_input/train/) and [`data/04_model_input/val`](./data/04_model_input/val/), respectively.
 
+### Disk Usage
+
+If following the above data engineering structure, make sure to have enough disk on space. 
+
+We keep three different **hard** copies of the data:
+1. The `zip` files in [`data/00_zip`](./data/00_zip/).
+2. The `raw` extracted files in [`data/01_raw`](./data/01_raw/).
+3. The (pre-)processed images and annotations in [`data/03_primary`](./data/03_primary).
+
+The images and labels in [`data/04_model_input`](./data/04_model_input) are **symlinks** to the files in `data/03_primary`. 
+
+This choice was made to keep disk usage as low as possile, whilst having enough data redundancy to safely process data without modifying and risking to corrupt `raw` data. 
+
+As a matter of fact, as best practice, you should not touch files in `data/01_raw`, but rather work on the data copied to `data/03_primary`.
+
+For the SUN Dataset, each of the hard copies occupies roughly ~67GB. Therefore, to keep all three copies you need: 67GB * 3 = 201GB of available disk space **at least** (excluding training outputs, such as model's weights, etc.).
+
+To further free up disk space, you can delete the `zip` files in `data/00_zip` after extracting them to `data/01_raw`. 
+
+### Note
+
+Organizing the dataset as detailed above is **NOT** mandatory. The training script will work as long as the `dataset` field in the configuration `yaml` file has been set up correctly and the `fpath` argument points to a valid directory.
+
+Particularly, the directory specified in `fpath` must contain the `train` and `val` folders, with `images` and `labels` folders in each, as following: 
+```
+├───<path/to/your/dataset>
+│   ├───train
+|   |   ├───images
+|   |   └───labels
+│   ├───val
+|   |   ├───images
+|   |   └───labels
+```
+
+where each `images` and `labels` folders contain `jpg` images and corresponding `json` custom annotations, respectively.
+
+However, the annotations should follow the specifications and format of the provided [template](./data/02_intermediate/annotation_template.json), else the data loading processes might break. This template roughly follows the [**COCO Annotation Format**](https://cocodataset.org/#format-data). Alternatively, you can customize the [`ODDataset` class](./src/data/datasets.py) to suit your needs and dataset (see this [tutorial](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html#creating-a-custom-dataset-for-your-files)).
 
 ## Training
 
