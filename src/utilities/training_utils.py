@@ -127,13 +127,13 @@ def prepare_training(config, _device, tb_writer, logger):
 def train(config, device, scaler, tb_writer, logger):
     """"
     Main training function. The function takes as input the configuration
-    file, the selected device (if available), the tensorboard writer and 
+    dict, the selected device, the gradient scaler (for AMP mode), the tensorboard writer and 
     the logger objects.
 
     Internally, it parses the config dict and loads all specified utilities
     for training (dataloaders, models, optimizers, etc.).
 
-    Finally, it starts the training loop by calling the internal function "train_one_epoch".
+    Then, it starts the training loop.
     
     At the end (either early checkout or end of epochs) saves
     best model, metrics, losses, and optimizer's state dicts in a .pt object in
@@ -259,10 +259,10 @@ def train(config, device, scaler, tb_writer, logger):
                         # Only forward pass under autocast! https://pytorch.org/docs/stable/notes/amp_examples.html#typical-mixed-precision-training
                         with torch.cuda.amp.autocast(enabled=scaler._enabled):
                         # Torchvision models loss
-                            if loss_fn is None:
-                                # Output from torchvision models is a dict of classification and regression losses
-                                loss_dict = model(inputs, targets)
-                                losses = sum(loss for loss in loss_dict.values())
+                            # if loss_fn is None:
+                            # Output from torchvision models is a dict of classification and regression losses
+                            loss_dict = model(inputs, targets)
+                            losses = sum(loss for loss in loss_dict.values())
                             # ################################################################## YOLO TBD #########################################################
                             # # YOLOLoss
                             # else: # bbox_format=='yolo':
@@ -306,7 +306,7 @@ def train(config, device, scaler, tb_writer, logger):
                         cuda_info = f'| GPU Usage: Allocated: {get_memory_info(torch.cuda.memory_allocated(device), torch.cuda.max_memory_allocated(device))}, Reserved: {get_memory_info(torch.cuda.memory_reserved(device), torch.cuda.max_memory_reserved(device))} (Total: {psutil._common.bytes2human(torch.cuda.get_device_properties(device).total_memory)}B)'
                     else:
                         cuda_info = ''
-                    pbar.set_description(f'[{phase}] Epoch: {epoch+1}/{epochs} | Batch: {i+1}/{len(dataloaders[phase])} | LR: {lr_scheduler.get_last_lr()[0]} | Batch Loss: {losses} | {" | ".join([f"{k}: {v}" for k,v in loss_dict.items()])} | RAM Usage: {get_memory_info(ram_usage.used, ram_usage.total)} {cuda_info}')
+                    pbar.set_description(f'[{phase}] Epoch: {epoch+1}/{epochs} | Batch: {i+1}/{len(dataloaders[phase])} | LR: {lr_scheduler.get_last_lr()[0]:.8f} | Batch Loss: {losses:.8f} | {" | ".join([f"{k}: {v:.8f}" for k,v in loss_dict.items()])} | RAM Usage: {get_memory_info(ram_usage.used, ram_usage.total)} {cuda_info}')
                     
                 # Averaged loss over the epoch
                 epoch_loss = {k: torch.div(v, len(datasets[phase])) for k,v in epoch_loss.items()}
@@ -315,7 +315,7 @@ def train(config, device, scaler, tb_writer, logger):
                 epoch_time = get_timestamp(time.time()-tic)[3:]
                 
                 if not isinstance(logger, (str, type(None))): # per epoch
-                    logger.info(f'[{phase}] Epoch #{epoch+1} | LR: {lr_scheduler.get_last_lr()[0]} | {" | ".join([f"{k}: {v}" for k,v in epoch_loss.items()])} | Time Elapsed: {epoch_time}')
+                    logger.info(f'[{phase}] Epoch #{epoch+1} | LR: {lr_scheduler.get_last_lr()[0]:.8} | {" | ".join([f"{k}: {v:.8}" for k,v in epoch_loss.items()])} | Time Elapsed: {epoch_time}')
 
                 for k,v in epoch_loss.items():
                     tb_writer.add_scalar(f'{k}/{phase}', v, epoch+1)
