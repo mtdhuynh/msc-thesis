@@ -21,3 +21,4 @@ dependencies:
   - tensorboard=2.8.0
   - wandb=0.12.14
   - psutil=5.9.0
+  - nbstripout=0.5.0
