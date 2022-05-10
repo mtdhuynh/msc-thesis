@@ -19,7 +19,8 @@ def fasterrcnn(backbone='resnet50', pretrained=False, num_classes=7, device=torc
         model (torch.nn.Module)
     """
     # Separate backbone kwargs from model kwargs
-    backbone_kwargs = {k: v for k,v in other_kwargs.items() if k not in ('img_size')}
+    backbone_kwargs = {k: v for k,v in other_kwargs.items() if k not in FasterRCNN.__init__.__code__.co_varnames}
+    model_kwargs = {k: v for k,v in other_kwargs.items() if k in FasterRCNN.__init__.__code__.co_varnames}
 
     # Get another backbone classifier model and return only its features with the output channels.
     backbone, anchor_generator = build_detection_backbone(backbone, pretrained=pretrained, **backbone_kwargs)
@@ -29,10 +30,9 @@ def fasterrcnn(backbone='resnet50', pretrained=False, num_classes=7, device=torc
         backbone, 
         num_classes,
         rpn_anchor_generator=anchor_generator, 
-        min_size=other_kwargs['img_size'], # do not resize
-        max_size=other_kwargs['img_size'], # do not resize
         image_mean=(0.0, 0.0, 0.0), # do not normalize
-        image_std=(1.0, 1.0, 1.0) # do not normalize
+        image_std=(1.0, 1.0, 1.0), # do not normalize
+        **model_kwargs
     )
 
     return model.to(device)
