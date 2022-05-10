@@ -74,10 +74,11 @@ if __name__ == '__main__':
 
     # Example: runs/yolov3/2022-02-23_10_48_32_2542_....
     # 
-    runs_dir = os.path.join(os.getcwd(), 'runs') if 'output_dir' not in config.keys() else os.path.join(config['output_dir'], 'runs')
+    runs_dir = os.getcwd() if 'output_dir' not in config.keys() else config['output_dir']
 
     logdir = os.path.join(
         runs_dir, 
+        'runs',
         config['model']['arch'], # arch_name
         "_".join(
             [

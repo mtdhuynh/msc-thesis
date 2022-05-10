@@ -282,11 +282,11 @@ Each run folder contains:
 
 To inspect the results for each run, open a `tensorboard` session:
 ```
-tensorboard --logdir data/06_model_output/runs
+tensorboard --logdir <output/directory>/runs
 ```
-The command will prompt to a browser local window with the `tensorboard` UI.
+The command will prompt to a browser local window with the `tensorboard` UI (`tensorboard` will recursively search for compatible logs file in all subdirectories of the specified `logdir`).
 
-For more information about `tensorboard`, see the [docs](https://www.tensorflow.org/tensorboard).
+For more information about `tensorboard`, see the [official docs](https://www.tensorflow.org/tensorboard) and the [`PyTorch` implementation](https://pytorch.org/docs/stable/tensorboard.html).
 
 ## Inference
 
