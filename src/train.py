@@ -64,7 +64,7 @@ if __name__ == '__main__':
     logdir_id = "_".join([ts, str(slurm_id)])
     
     # The directory where the training outputs will be saved is under:
-    # "~/ms-thesis/data/06_model_output/runs"
+    # "<current/path>/runs" or the "<specified/path>/runs" (with <specified/path> in config['output_dir'])
     # The name structure of the current run folder is the following:
     # 1. Arch_Name: name of object detection architecture (e.g., YOLO, SSD, etc.)
     # 2. Unique_Log_ID: timestamp + the SLURM job ID
@@ -73,9 +73,11 @@ if __name__ == '__main__':
     # 5. Batch_Size: batch size for dataloading (e.g., 1, 8, 16, etc.) 
 
     # Example: runs/yolov3/2022-02-23_10_48_32_2542_....
+    # 
+    runs_dir = os.path.join(os.getcwd(), 'runs') if 'output_dir' not in config.keys() else os.path.join(config['output_dir'], 'runs')
 
     logdir = os.path.join(
-        "/home/thuynh/ms-thesis/data/06_model_output/runs", 
+        runs_dir, 
         config['model']['arch'], # arch_name
         "_".join(
             [

@@ -255,9 +255,26 @@ For more information on SLURM and available commands, have a look at the [offici
 
 ### 3. Inspect results
 
-Results from the training are saved by default to [`data/06_model_output/runs`](./data/06_model_output/runs/). The `runs` folder contains a folder for each different **model** (i.e., `arch` field in the configuration file). Each model folder contains each run's output in another unique folder (identified by `<YYYY-MM-DD_hh_mm_ss>_<SLURM_JOB_ID>`).
+Results from the training are saved by default to `<current/working/directory>/runs` (for example: [`data/06_model_output/runs`](./data/06_model_output/runs/)). You can edit the training output folder in the configuration `yaml` file by using the `output_dir` field. Note that, for consistency and for a more complete `tensorboard` experience, the output directory should be kept the same across different runs/models.
 
-Each result folder contains:
+The `runs` folder contains a folder for each different **model** (i.e., `arch` field in the configuration file). Each model folder contains each run's output in another unique folder (identified by `<YYYY-MM-DD_hh_mm_ss>_<SLURM_JOB_ID>` - or `0000` if not using SLURM).
+
+For example:
+```
+├───<path/to/output/directory>
+│   ├───runs
+|   |   ├───yolov5
+|   |   │   ├───<run_id_folder>
+|   |   │   └───<run_id_folder>
+|   |   ├───yfasterrcnn
+|   |   │   ├───<run_id_folder>
+|   |   │   └───<run_id_folder>
+|   |   ├───retinanet
+|   |   │   ├───<run_id_folder>
+|   |   │   └───<run_id_folder>
+```
+
+Each run folder contains:
 * Output log file (`.log`).
 * `tensorboard` run file (`events.out.tfevents.[...]`).
 * Configuration file (`.yaml`).
