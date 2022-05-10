@@ -315,7 +315,7 @@ def train(config, device, scaler, tb_writer, logger):
                 epoch_time = get_timestamp(time.time()-tic)[3:]
                 
                 if not isinstance(logger, (str, type(None))): # per epoch
-                    logger.info(f'[{phase}] Epoch #{epoch+1} | LR: {lr_scheduler.get_last_lr()[0]:.8} | {" | ".join([f"{k}: {v:.8}" for k,v in epoch_loss.items()])} | Time Elapsed: {epoch_time}')
+                    logger.info(f'[{phase}] Epoch #{epoch+1} | LR: {lr_scheduler.get_last_lr()[0]:.8f} | {" | ".join([f"{k}: {v:.8f}" for k,v in epoch_loss.items()])} | Time Elapsed: {epoch_time}')
 
                 for k,v in epoch_loss.items():
                     tb_writer.add_scalar(f'{k}/{phase}', v, epoch+1)
