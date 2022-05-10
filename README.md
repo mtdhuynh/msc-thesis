@@ -242,7 +242,7 @@ Every other training hyperparameter should be edited in the config `yaml` file a
 
 #### Using SLURM
 
-If your computational resources reside on a separate cluster managed by a [SLURM scheduling system](https://www.schedmd.com/), have a look at the [slurm.sh](slurm.sh) execution script. 
+If your computational resources reside on a separate cluster managed by a [SLURM scheduling system](https://www.schedmd.com/), have a look at the [`slurm.sh`](slurm.sh) execution script. 
 
 Make sure to edit the [`SBATCH`](https://slurm.schedmd.com/sbatch.html) options and requested resources to suit your specific system and needs (e.g., `--gres`/`--mem` options, `-o` output log path, `-p` partition name, etc.).
 
