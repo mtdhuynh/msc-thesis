@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 
@@ -71,7 +72,7 @@ class ODDataset():
                 self.cached_data.append((image, label))
             
         # Also read polyp classes
-        self.polyp_classes_file = '/home/thuynh/ms-thesis/data/02_intermediate/polyp_classes.json'
+        self.polyp_classes_file = '/home/thuynh/data/02_intermediate/polyp_classes.json'
         with open(self.polyp_classes_file, 'r') as f:
             self.polyp_classes = json.load(f)['polyp_classes']
 
@@ -214,7 +215,7 @@ class ODDataset():
 
         return transformed_image, target
 
-    def visualize(self, images_list=None, transformed=False, n=10, nrow=5, resize=512, font_scale=0.5, thickness=1, bbox_width=2, verbose=False):
+    def visualize(self, images_list=None, model=None, transformed=False, n=10, nrow=5, resize=512, font_scale=0.5, thickness=1, bbox_width=2, verbose=False):
         """
         Visualizes a grid of images with bounding box annotations.
 
@@ -249,7 +250,8 @@ class ODDataset():
         """
         # Import here to avoid conflicts       
         from data.dataset_utils import get_transforms
-        from utilities.bboxes_utils import draw_bbox, plot_grid 
+        from utilities.bboxes_utils import draw_bbox, plot_grid
+        from utilities.logging_utils import get_timestamp
 
         # Get images and samples
         if images_list is not None:
@@ -266,30 +268,57 @@ class ODDataset():
 
         images = []
 
+        batch_time = 0.0
+
         # Load n images and labels
         for idx, (img_fname, lbl_fname) in enumerate(zip(image_samples, label_samples)):
-            image, label = self._read(img_fname, lbl_fname)
+            orig_image, label = self._read(img_fname, lbl_fname)
 
             if verbose:
-                print(f'{idx+1}. ImageID: {label["image_id"]} | Original Image Height, Width: {image.shape[:2]} | Resized to: {resize}')
+                print(f'{idx+1}. ImageID: {label["image_id"]} | Original Image Height, Width: {orig_image.shape[:2]} | Resized to: {resize}')
             
-            if not transformed:
-                # mode='val' + normalize=False = only Resize transforms
-                transforms_no_norm = get_transforms(
-                    mode='val', 
-                    params={
-                        'transforms': {
-                            'resize': resize,
-                            'min_visibility': 0.2, # at least 1/5 of the original bbox
-                            'min_area': 900 # 30x30
-                        },
-                        'format': 'pascal_voc'
+            if not transformed or model:
+                mode = 'val' # only Resize (no norm and totensor)
+            else:
+                mode = 'train' # all training augs + Resize (no norm and totensor)
+            
+            transforms_no_norm = get_transforms(
+                mode=mode,
+                params={
+                    'transforms': {
+                        'resize': resize, 
+                        'min_area': 900, 
+                        'min_visibility': 0.2
                     },
-                    normalize=False
-                )
-            else: # Apply training transforms to image (no normalization)
-                transforms_no_norm = get_transforms(
-                    mode='train',
+                    'format': 'pascal_voc'
+                }, 
+                normalize=False)
+
+            # Apply transforms
+            transf = self._transform(orig_image, label, transforms_no_norm)
+
+            # Process output as needed for draw_bbox() -- mainly convert to np.array
+            image = transf['image']
+            bbox_coords = np.array(transf['bboxes'], dtype=np.int64)
+            label_names = transf['label_names']
+            label_ids = np.array(transf['label_ids'], dtype=np.int64)
+
+            # Get bbox color from template
+            bbox_colors = [eval(polyp['outline']) for polyp in self.polyp_classes for id in label_ids if polyp['id']==id]
+            
+            # Print info
+            if verbose:
+                if len(bbox_coords)==0: # no annotations
+                    print(f'{idx+1}. Original Labels: {label["labels"]} | No labels to visualize.')
+                else: # transformed annotations
+                    print(f'{idx+1}. Original Labels: {label["labels"]} | Visualized Labels: "category_name": {label_names}, "category_id": {label_ids}, "xyxy": {bbox_coords}')
+            
+            # If model is specified, draw predicted bounding boxes on the original image
+            if model:
+                # First, get the image in a model-friendly format (normalized and tensorized)
+                # get transforms (resize+normalize+tensorize)
+                transforms = get_transforms(
+                    mode='val',
                     params={
                         'transforms': {
                             'resize': resize, 
@@ -298,31 +327,47 @@ class ODDataset():
                         },
                         'format': 'pascal_voc'
                     }, 
-                    normalize=False)
+                    normalize=True)
+                # apply transforms
+                inference_transf = self._transform(orig_image, label, transforms)
 
-            # Apply transforms
-            transf = self._transform(image, label, transforms_no_norm)
+                input_image = inference_transf['image'].unsqueeze(0) # everything else we ignore as we already have
 
-            # Process output as needed for draw_bbox() -- mainly convert to np.array
-            image = transf['image']
-            bbox_coords = np.array(transf['bboxes'], dtype=np.int64)
-            label_names = transf['label_names']
-            label_ids = np.array(transf['label_ids'], dtype=np.int64)
-            
-            # Print info
-            if verbose:
-                if len(bbox_coords)==0: # no annotations
-                    print(f'{idx+1}. Original Labels: {label["labels"]} | No labels to visualize.')
-                else: # transformed annotations
-                    print(f'{idx+1}. Original Labels: {label["labels"]} | Visualized Labels: "category_name": {label_names}, "category_id": {label_ids}, "xyxy": {bbox_coords}')
+                # Start logging
+                start_time = datetime.datetime.now()
+                # Forward pass with 1-image batch (shape: [1,C,H,W])
+                output = model(input_image)[0]
 
-            # Get bbox color from template
-            bbox_colors = [eval(polyp['outline']) for polyp in self.polyp_classes for id in label_ids if polyp['id']==id]
+                end_time = datetime.datetime.now() - start_time # <<-- datetime.timedelta object
+                # total time in milliseconds
+                batch_time += (end_time.seconds*1000 + int(end_time.microseconds/1000))
+
+
+                if len(output['boxes'])==0:
+                    if verbose:
+                        print(f'{idx+1}. Inference time: {end_time.seconds}s {int(end_time.microseconds/1000):03}ms | No object detected!')
+                else:
+                    # Get the name of the predicted class
+                    preds_names = [polyp['name'] for polyp in self.polyp_classes for pred_id in output['labels'] if polyp['id']==pred_id]
+                    labels_with_score = [f'{name} ({round(score.item()*100, 2)}%)' for name, score in zip(preds_names, output['scores'])] # append also the confidence score
+
+                    pred_bboxes = output['boxes'].detach().numpy().astype(np.uint32)
+
+                    # Append detections to ground-truth
+                    bbox_coords = np.concatenate((bbox_coords, pred_bboxes), axis=0) if len(bbox_coords)!=0 else pred_bboxes # if gt labels are empty only plot predictions
+                    label_names = label_names + labels_with_score
+                    bbox_colors = bbox_colors + [(75,75,75)] * len(labels_with_score)
+
+                    if verbose:
+                        print(f'{idx+1}. Inference time: {end_time.seconds}s {int(end_time.microseconds/1000):03}ms | Predicted objects (xyxy-format): {" | ".join([f"{lbl_score}: {pred_bbox}" for lbl_score, pred_bbox in zip(labels_with_score, pred_bboxes)])}')
 
             # Draw bbox
             img_with_bbox = draw_bbox(image, bbox_coords, label_names, bbox_width=bbox_width, bbox_colors=bbox_colors, font_scale=font_scale, thickness=thickness)
 
             images.append(img_with_bbox)
+
+        if model:
+            print(f'Average inference time over {len(image_samples)} images: {batch_time/len(image_samples)}ms')
 
         # Organize images in a grid
         # To use torchvision.utils.make_grid() we need to convert the images to tensors
