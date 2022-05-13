@@ -64,11 +64,6 @@ def prepare_training(config, _device, tb_writer, logger):
     }
 
     ##### MODEL #####
-    if config['model']['arch'] not in ('yolov3', 'yolov5'):
-         # torchvision OD models implement internally a Normalize+Resize transform.
-         # We have our own augmentation pipeline, and by supplying our own resize size, we prevent a further resizing.
-         # YOLO models do not have this internal transform.
-        config['model']['img_size'] = config['dataset']['transforms']['resize']
     model = get_model(params=config['model'], device=device, logger=logger)
 
     ##### OPTIMIZER #####

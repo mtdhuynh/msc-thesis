@@ -364,13 +364,17 @@ class ODDataset():
                     if verbose:
                         print(f'{idx+1}. Inference time: {end_time.seconds}s {int(end_time.microseconds/1000):03}ms | Predicted objects (xyxy-format): {" | ".join([f"{lbl_score}: {pred_bbox}" for lbl_score, pred_bbox in zip(labels_with_score, pred_bboxes)])}')
 
-            # Resize bbox to original dimensions
-            orig_height, orig_width = orig_image.shape[:2]
+            # If there are either gt annotations or predicted bboxes, draw them
+            if bbox_coords.shape[0]!=0:
+                # Resize bbox to original dimensions
+                orig_height, orig_width = orig_image.shape[:2]
+                resized_bboxes = resize_bbox(bbox_coords, resize, resize, orig_height, orig_width)
 
-            resized_bboxes = resize_bbox(bbox_coords, resize, resize, orig_height, orig_width)
-
-            # Draw bbox
-            img_with_bbox = draw_bbox(orig_image, resized_bboxes, label_names, bbox_width=bbox_width, bbox_colors=bbox_colors, font_scale=font_scale, thickness=thickness)
+                # Draw bbox
+                img_with_bbox = draw_bbox(orig_image, resized_bboxes, label_names, bbox_width=bbox_width, bbox_colors=bbox_colors, font_scale=font_scale, thickness=thickness)
+            else:
+                # Skip drawing altogether to save time if no annotations nor predictions
+                img_with_bbox = orig_image 
 
             images.append(img_with_bbox)
 

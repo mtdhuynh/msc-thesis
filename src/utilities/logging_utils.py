@@ -16,8 +16,8 @@ def log_tb_images(dataset, tb_writer):
     """
     # Generate grids
     image_grids = {
-        'Original Images': dataset.visualize(n=20, nrow=5),
-        'Augmented Images': dataset.visualize(n=20, nrow=5, transformed=True, bbox_width=2, font_scale=0.5, thickness=1)
+        'Original Images': dataset.visualize(n=20, nrow=5)[1],
+        'Augmented Images': dataset.visualize(n=20, nrow=5, transformed=True, bbox_width=2, font_scale=0.5, thickness=1)[1]
     }
 
     # Log images to tensorboard
