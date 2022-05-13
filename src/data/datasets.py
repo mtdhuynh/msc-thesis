@@ -43,9 +43,13 @@ class ODDataset():
             transforms (albumentations.Compose) : list of transforms to apply to the images. 
             cache (bool)                        : whether to cache the data or not. 
         """    
-        if os.path.isdir(fpath):
+        if all(x in os.listdir(fpath) for x in ('images', 'labels')): # if there are 'images' and 'labels' subfolders
             self.images_path = os.path.join(fpath, 'images')
             self.labels_path = os.path.join(fpath, 'labels')
+        elif os.path.isdir(fpath) and [x for x in os.listdir(fpath) if x.endswith('.jpg')]: # if folder contains jpg files e.g. '/home/thuynh/data/01_raw/caseX'
+            self.images_path = fpath
+            # Since we only have the images, we use the folder with all annotations
+            self.labels_path = '/home/thuynh/data/03_primary/labels'
         else:
             raise Exception(f'The specified data folder path is not valid: {fpath}.')
         
@@ -246,12 +250,11 @@ class ODDataset():
             verbose (bool)          : whether or not to print information about the images and labels being visualized.
 
         Returns:
-            grid (torch.Tensor)
+            iamges, grid (list[np.array], torch.Tensor)
         """
         # Import here to avoid conflicts       
         from data.dataset_utils import get_transforms
-        from utilities.bboxes_utils import draw_bbox, plot_grid
-        from utilities.logging_utils import get_timestamp
+        from utilities.bboxes_utils import draw_bbox, plot_grid, resize_bbox
 
         # Get images and samples
         if images_list is not None:
@@ -271,7 +274,7 @@ class ODDataset():
         batch_time = 0.0
 
         # Load n images and labels
-        for idx, (img_fname, lbl_fname) in enumerate(zip(image_samples, label_samples)):
+        for idx, (img_fname, lbl_fname) in tqdm.tqdm(enumerate(zip(image_samples, label_samples)), total=len(image_samples), desc=f'Drawing bounding boxes for {len(image_samples)} images...'):
             orig_image, label = self._read(img_fname, lbl_fname)
 
             if verbose:
@@ -361,22 +364,27 @@ class ODDataset():
                     if verbose:
                         print(f'{idx+1}. Inference time: {end_time.seconds}s {int(end_time.microseconds/1000):03}ms | Predicted objects (xyxy-format): {" | ".join([f"{lbl_score}: {pred_bbox}" for lbl_score, pred_bbox in zip(labels_with_score, pred_bboxes)])}')
 
+            # Resize bbox to original dimensions
+            orig_height, orig_width = orig_image.shape[:2]
+
+            resized_bboxes = resize_bbox(bbox_coords, resize, resize, orig_height, orig_width)
+
             # Draw bbox
-            img_with_bbox = draw_bbox(image, bbox_coords, label_names, bbox_width=bbox_width, bbox_colors=bbox_colors, font_scale=font_scale, thickness=thickness)
+            img_with_bbox = draw_bbox(orig_image, resized_bboxes, label_names, bbox_width=bbox_width, bbox_colors=bbox_colors, font_scale=font_scale, thickness=thickness)
 
             images.append(img_with_bbox)
 
         if model:
-            print(f'Average inference time over {len(image_samples)} images: {batch_time/len(image_samples)}ms')
+            print(f'Average inference time over {len(image_samples)} images: {batch_time/len(image_samples):.03f}ms')
 
         # Organize images in a grid
         # To use torchvision.utils.make_grid() we need to convert the images to tensors
         # We also resize them, as not all of the images have equal size
         tensorize = ToTensorV2()
 
-        images = [tensorize(image=img)['image'] for img in images]
+        tensors = [tensorize(image=img)['image'] for img in images]
 
         # Generate grid
-        grid = plot_grid(images, nrow=nrow, padding=1, normalize=False)
+        grid = plot_grid(tensors, nrow=nrow, padding=1, normalize=False)
 
-        return grid
+        return images, grid
