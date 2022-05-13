@@ -165,3 +165,28 @@ def denormalize_bbox(bbox, src_format='xywh', img_width=512, img_height=512):
         raise Exception(f'Unknown bbox format: {format}. Supported formats: ["xyxy", "xywh"].')
 
     return list(norm_bbox)
+
+def resize_bbox(bboxes, old_height, old_width, new_height, new_width):
+    """
+    Resizes input bboxes from current image height and width to
+    provided new image dimensions. 
+
+    Parameters:
+        bboxes (list[np.array]) : list of bounding boxes coordinates. Shape should be [N, 4].
+        old_height (int)        : current height of the image the bboxes belong to.
+        old_width (int)         : current width of the image the bboxes belong to.
+        new_height (int)        : height to resize the bboxes to.
+        new_width (int)         : width to resize the bboxes to.
+
+    Returns:
+        bboxes (list[np.array])
+    """
+    height_ratio = new_height / old_height
+    width_ratio = new_width / old_width
+
+    bboxes[:, 0] = bboxes[:, 0] * width_ratio
+    bboxes[:, 2] = bboxes[:, 2] * width_ratio
+    bboxes[:, 1] = bboxes[:, 1] * height_ratio
+    bboxes[:, 3] = bboxes[:, 3] * height_ratio
+
+    return bboxes
