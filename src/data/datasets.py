@@ -384,7 +384,7 @@ class ODDataset():
         # Organize images in a grid
         # To use torchvision.utils.make_grid() we need to convert the images to tensors
         # We also resize them, as not all of the images have equal size
-        tensorize = ToTensorV2()
+        tensorize = Compose([Resize(resize, resize), ToTensorV2()])
 
         tensors = [tensorize(image=img)['image'] for img in images]
 

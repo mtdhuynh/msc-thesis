@@ -1,9 +1,9 @@
 import torchvision
-from torchvision.models.detection.anchor_utils import AnchorGenerator
+from torchvision.models.detection.anchor_utils import AnchorGenerator, DefaultBoxGenerator
 
 from detection_models import ODModel
 
-def build_detection_backbone(backbone_name, pretrained=False,  **kwargs):
+def build_detection_backbone(backbone_name, pretrained=False, ssd=False, **kwargs):
     """
     Loads a specific backbone for object detection models. 
 
@@ -32,6 +32,7 @@ def build_detection_backbone(backbone_name, pretrained=False,  **kwargs):
     Parameters:
         backbone_name (str) : name of the backbone. Available backbones can be found in "torchvision.models".
         pretrained (bool)   : whether to download pretrained weights or not.
+        ssd (bool)          : use a DefaultBoxGenerator instead of AnchorGenerator for SSD models as in the paper.
         **kwargs (dict)     : admissible kwargs for the backbone models.
 
     Returns:
@@ -58,23 +59,23 @@ def build_detection_backbone(backbone_name, pretrained=False,  **kwargs):
             aspect_ratios = ((0.7, 0.85, 1.0, 1.5), )        
     else:
         # Load another backbone with "features" attribute
-        try:
-            # Not all backbones have a "features" attribute, so fail gracefully
-            feature_extractor = torchvision.models.__dict__[backbone_name](pretrained=pretrained, **kwargs)
-            backbone = feature_extractor.features
-            backbone.out_channels = backbone[-1].out_channels # not every last features block has "out_channels"
+        feature_extractor = torchvision.models.__dict__[backbone_name](pretrained=pretrained, **kwargs)
+        backbone = feature_extractor.features
+        backbone.out_channels = backbone[-1].out_channels if hasattr(backbone, 'out_channels') else torchvision.models.detection._utils.retrieve_out_channels(backbone, (512, 512))[0]
 
-            #### TO DO: Implement FPN for general backbones ####
+        #### TO DO: Implement FPN for general backbones ####
 
-            # Generally speaking, off-the-shelf backbones return a single feature map / tensor, 
-            # therefore we only need one anchor_size
-            anchor_sizes = ((32, 64, 128, 256, 512, ), )
-            aspect_ratios = ((0.7, 0.85, 1.0, 1.5), )
-        except Exception as e:
-            raise Exception(f'Encountered unknown error: {e}. The selected backbone should have ".features" and ".features[-1].out_channels" attributes. Check the source code for these. If your selected backbone is not available, you can try one of the default backbones: ["resnet<[18,50,101,152]>", "mobilenet_v<[2,3_small,3_large]>"].')
-    
+        # Generally speaking, off-the-shelf backbones return a single feature map / tensor, 
+        # therefore we only need one anchor_size
+        anchor_sizes = ((32, 64, 128, 256, 512, ), )
+        aspect_ratios = ((0.7, 0.85, 1.0, 1.5), )
+        
     # Define the anchor generator
-    anchor_generator = AnchorGenerator(anchor_sizes, aspect_ratios)
+    if ssd:
+        # SSD model uses a DefaultBoxGenerator instead of an AnchorGenerator
+        anchor_generator = DefaultBoxGenerator(aspect_ratios)
+    else:
+        anchor_generator = AnchorGenerator(anchor_sizes, aspect_ratios)
     
     return backbone, anchor_generator
 

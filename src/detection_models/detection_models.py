@@ -2,7 +2,7 @@ import torch
 
 import detection_models
 
-SUPPORTED_ARCHITECTURES = ['fasterrcnn', 'retinanet', 'yolov3', 'yolov5']
+SUPPORTED_ARCHITECTURES = ['fasterrcnn', 'retinanet', 'ssd', 'yolov3', 'yolov5']
 
 class ODModel():
     """
@@ -31,12 +31,11 @@ class ODModel():
         self.other_kwargs = {k: v for k,v in params.items() if k not in ('arch', 'pretrained', 'backbone', 'num_classes')}
 
         # Load model from our model_zoo
-        try:
-            # Get the function from the package list
-            model_func = detection_models.__dict__[self.model_arch.lower()]
+        if self.model_arch.lower() not in SUPPORTED_ARCHITECTURES or self.model_arch.lower() not in detection_models.__dict__.keys():
+            raise ValueError(f'{self.model_arch} not supported. Available object detection model architectures: {SUPPORTED_ARCHITECTURES}')
 
-            # Initialize the model (model will be returned already on selected device)
-            self.model = model_func(backbone=self.model_backbone, pretrained=self.pretrained, num_classes=self.num_classes, device=self.device, other_kwargs=self.other_kwargs)
-        except Exception as e:
-            print(e)
-            print(f'Available object detection model architectures: {SUPPORTED_ARCHITECTURES}')
+        # Get the function from the package list
+        model_func = detection_models.__dict__[self.model_arch.lower()]
+
+        # Initialize the model (model will be returned already on selected device)
+        self.model = model_func(backbone=self.model_backbone, pretrained=self.pretrained, num_classes=self.num_classes, device=self.device, other_kwargs=self.other_kwargs)
