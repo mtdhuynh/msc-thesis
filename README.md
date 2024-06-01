@@ -7,23 +7,23 @@
   <a href="https://github.com/mtdhuynh/ms-thesis" alt="MS Thesis Repository">
     <img src="images/colon-logo.png" height="250">
   </a>
-  <h1 align="center">Automated Colorectal Polyp Detection in Colonoscopy</h1>
+  <h1 align="center">Deep Learning for Computer-Aided Diagnosis in Colonoscopy: a Benchmark Study</h1>
 </p>
 
 
 <table align="center" style="background-color: rgba(0,0,0,0); border: none; background: transparent;">
   <tr style="background-color: rgba(0,0,0,0); border-collapse: none; background: transparent;">
-    <td>In collaboration with:
+    <td colspan=3>In collaboration with:</td>
   <tr style="background-color: rgba(0,0,0,0); border: none; background: transparent;">
-    <!-- <td><a href="https://nearlab.polimi.it/medical/" alt="NEAR Lab Website" target="_blank">
-  		<img src="images/near-lab-logo.jpg" alt="NEAR Lab Logo" width=130>
-  	  </a></th> -->
+    <td><a href="https://nearlab.polimi.it/medical/" alt="NEAR Lab Website" target="_blank">
+  		<img src="images/nearlab_black.png" alt="NEAR Lab Logo" width=130>
+  	  </a></td>
     <td><a href="https://www.polimi.it/" alt="PoliMi Website" target="_blank">
-		<img src="images/polimi-logo.png" alt="PoliMi Logo" width=350>
-	  </a>
-	  <a href="https://www.humanitas.it/" alt="Humanitas Website" target="_blank">
+		<img src="images/polimi.png" alt="PoliMi Logo" width=130>
+	  </a></td>
+    <td><a href="https://www.humanitas.it/" alt="Humanitas Website" target="_blank">
 		<img src="images/humanitas-logo.svg" alt="Humanitas Logo" height=85>
-	  </a>
+	  </a></td>
 </table>
 
 <p align="center">
