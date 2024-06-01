@@ -1,3 +1,8 @@
+> [!NOTE]
+> Unfortunately, due to storage and archiving issues, the last and most up-to-date part of the work has been lost. Therefore, the codebase and repository is incomplete and frozen to an initial phase of the thesis work.
+>
+> If you wish to learn more about the work and the results, you can check it out [here](https://www.politesi.polimi.it/handle/10589/196953 "politesi.polimi.it") or feel free to [get in touch with me](https://calendar.app.google/TvQSSSUkTVCZnEa68 "Schedule a call with Tam (Google)") directly!
+
 <p align="center">
   <a href="https://github.com/mtdhuynh/ms-thesis" alt="MS Thesis Repository">
     <img src="images/colon-logo.png" height="250">
